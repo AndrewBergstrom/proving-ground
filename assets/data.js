@@ -7,7 +7,8 @@ var TRACKS = [
   { id: "dsa", name: "Algorithms & Data Structures", short: "DSA", blurb: "The LeetCode-style pattern round. Recognize the pattern, then implement it under time pressure." },
   { id: "fde", name: "Forward Deployed", short: "FDE", blurb: "Decomposition under ambiguity, practical builds, and customer framing  - the loop AI companies actually run." },
   { id: "platform", name: "Platform & Cloud", short: "Platform", blurb: "Applied system design, reliability, and infrastructure. Pragmatic design over algorithm puzzles." },
-  { id: "ai", name: "Applied AI", short: "AI", blurb: "RAG, agents, and evals  - the emerging applied-AI interview, still forming." }
+  { id: "ai", name: "Applied AI", short: "AI", blurb: "RAG, agents, and evals  - the emerging applied-AI interview, still forming." },
+  { id: "data-eng", name: "Data Engineering", short: "Data", blurb: "SQL, pipelines, and modeling. The data-plumbing loop, with a sensor and meter-data slant that fits energy and water companies." }
 ];
 
 /* ===================== CODING PROBLEM BANK ===================== */
@@ -445,5 +446,132 @@ var MODULES = [
       { front: "What makes an eval trustworthy vs vibes?", back: "A reproducible, version-controlled eval set run by one command, with per-case results." },
       { front: "Before trusting an LLM-as-judge?", back: "Validate it against human labels on a sample; watch for bias and drift." }
     ]
+  },
+  /* ---------- DATA ENGINEERING ---------- */
+  {
+    id: "sql-fundamentals", track: "data-eng", title: "SQL Fundamentals", kicker: "Core skill", est: "50 min",
+    learn: {
+      intro: "SQL is the lingua franca of data engineering. Most data interviews start here: pull the right rows, join tables, aggregate, and filter groups. Get fluent and half the loop is won.",
+      points: [
+        { h: "The clause order", p: "You write SELECT first, but SQL runs FROM/JOIN, then WHERE, then GROUP BY, then HAVING, then SELECT, then ORDER BY. That order explains why WHERE cannot see aggregates but HAVING can." },
+        { h: "Aggregate and group", p: "SUM, COUNT, and AVG collapse rows within each GROUP BY bucket. Every non-aggregated column in SELECT must also appear in GROUP BY." },
+        { h: "WHERE vs HAVING", p: "WHERE filters rows before grouping; HAVING filters groups after aggregation. Filtering on a SUM needs HAVING." }
+      ],
+      template: { lang: "SQL", code: "SELECT s.name, SUM(r.kwh) AS total_kwh\nFROM readings r\nJOIN sites s ON s.id = r.site_id\nWHERE s.region = 'West'\nGROUP BY s.name\nHAVING SUM(r.kwh) > 50\nORDER BY s.name;" },
+      example: { h: "The sample dataset", p: "You have sites(id, name, region) and readings(id, site_id, ts, kwh): meter readings per site over time. The playground runs your SQL against it live." }
+    },
+    practice: { type: "sql", refs: ["sql-total-per-site", "sql-region-threshold"], note: "Write real SQL and run it against the sample meter data. Tables: sites(id, name, region), readings(id, site_id, ts, kwh)." },
+    quiz: [
+      { q: "Which clause filters groups AFTER aggregation?", choices: ["WHERE", "HAVING", "GROUP BY", "ORDER BY"], answer: 1, explain: "WHERE filters rows before grouping; HAVING filters the aggregated groups, e.g. HAVING SUM(kwh) > 50." },
+      { q: "Every non-aggregated column in SELECT must also appear in:", choices: ["WHERE", "ORDER BY", "GROUP BY", "a subquery"], answer: 2, explain: "Grouping collapses rows, so any plain column you select must be part of the GROUP BY key." },
+      { sql: "sql-total-per-site" }
+    ],
+    recall: [
+      { front: "WHERE vs HAVING?", back: "WHERE filters rows before grouping; HAVING filters groups after aggregation. Filter a SUM with HAVING." },
+      { front: "Logical run order of a SELECT?", back: "FROM/JOIN -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY." }
+    ]
+  },
+  {
+    id: "sql-windows", track: "data-eng", title: "SQL Window Functions", kicker: "Core skill", est: "50 min",
+    learn: {
+      intro: "Window functions compute across a set of rows related to the current row without collapsing them the way GROUP BY does. They are how you do running totals, rankings, and period-over-period change: the bread and butter of time-series and sensor data.",
+      points: [
+        { h: "OVER and PARTITION BY", p: "OVER defines the window. PARTITION BY splits it into groups (e.g. per site); ORDER BY within the window enables running and rolling calculations." },
+        { h: "The common ones", p: "ROW_NUMBER, RANK, DENSE_RANK for ordering; SUM and AVG OVER for running totals and moving averages; LAG and LEAD for the previous or next row." },
+        { h: "Why DE loves them", p: "Sensor and meter data is inherently time-series. Running totals, daily rollups, and day-over-day deltas are window functions, not joins." }
+      ],
+      template: { lang: "SQL", code: "SELECT ts, kwh,\n  SUM(kwh) OVER (PARTITION BY site_id ORDER BY ts) AS running_kwh,\n  kwh - LAG(kwh) OVER (PARTITION BY site_id ORDER BY ts) AS delta\nFROM readings;" },
+      example: { h: "Running total", p: "SUM(kwh) OVER (ORDER BY ts) adds each row's kwh to the sum of all prior rows: a cumulative meter reading, computed in one pass." }
+    },
+    practice: { type: "sql", refs: ["sql-running-total", "sql-rank-sites"], note: "These are the time-series patterns energy and water companies lean on. Same sample tables." },
+    quiz: [
+      { q: "To compute a running total per site over time, you use:", choices: ["GROUP BY site_id", "SUM(kwh) OVER (PARTITION BY site_id ORDER BY ts)", "COUNT(*)", "a self-join"], answer: 1, explain: "A windowed SUM with PARTITION BY site_id and ORDER BY ts accumulates within each site without collapsing rows." },
+      { q: "To compare each reading to the previous one (day-over-day change), reach for:", choices: ["RANK()", "LAG()", "HAVING", "DISTINCT"], answer: 1, explain: "LAG() returns a prior row's value in the ordered window, so kwh - LAG(kwh) is the delta." },
+      { sql: "sql-running-total" }
+    ],
+    recall: [
+      { front: "What does OVER (PARTITION BY x ORDER BY y) do?", back: "Defines a window split by x and ordered by y, enabling running and rolling calcs per group without collapsing rows." },
+      { front: "Previous-row value in a window?", back: "LAG() (and LEAD() for the next row), used for period-over-period deltas." }
+    ]
+  },
+  {
+    id: "data-pipelines", track: "data-eng", title: "Pipelines & Modeling", kicker: "Design", est: "45 min",
+    learn: {
+      intro: "Beyond SQL, DE interviews probe how you move and model data: batch vs streaming, making loads safe to re-run, and shaping raw events into tables analysts can trust.",
+      points: [
+        { h: "Idempotent and incremental", p: "A pipeline must be safe to re-run: upsert on a natural key, process only new or changed data, and handle late-arriving records without duplicating." },
+        { h: "Dimensional modeling", p: "Facts (measurements, e.g. readings) and dimensions (context, e.g. sites) form the star schema analysts query. Always know the grain: one row per what?" },
+        { h: "Batch vs streaming", p: "Batch for periodic rollups; streaming for low latency. Most real systems are both. Name the latency and cost tradeoff." }
+      ],
+      template: null, example: null
+    },
+    practice: { type: "build", refs: ["csv", "webhooks"], note: "The CSV ingest and webhook delivery builds are data-pipeline problems: idempotency, dedup, late data, and reliable delivery." },
+    quiz: [
+      { q: "The property that makes a pipeline safe to re-run is:", choices: ["Speed", "Idempotency", "Compression", "Sharding"], answer: 1, explain: "Idempotent loads (e.g. upsert on a natural key) mean re-running does not duplicate or corrupt data." },
+      { q: "In a star schema, meter readings are a ___ and sites are a ___:", choices: ["dimension / fact", "fact / dimension", "view / index", "key / value"], answer: 1, explain: "Measurements (readings) are facts; descriptive context (sites) are dimensions." }
+    ],
+    recall: [
+      { front: "What makes a pipeline safe to re-run?", back: "Idempotency: upsert on a natural key, process incrementally, handle late data without duplicating." },
+      { front: "Facts vs dimensions?", back: "Facts are measurements (readings); dimensions are descriptive context (sites). Mind the grain." }
+    ]
+  },
+  {
+    id: "data-quality", track: "data-eng", title: "Data Quality", kicker: "Design", est: "40 min",
+    learn: {
+      intro: "Data is only as useful as it is trustworthy. Interviews increasingly ask how you keep it clean: dedup, late and out-of-order data, slowly changing dimensions, and automated tests.",
+      points: [
+        { h: "Dedup and late data", p: "Real feeds send duplicates and out-of-order records. Deduplicate on a natural key, and window on event time, not arrival time." },
+        { h: "Slowly changing dimensions", p: "When a site's attributes change, do you overwrite (SCD type 1) or keep history (SCD type 2)? It depends on whether analysts need the past." },
+        { h: "Test your data", p: "Assertions (not-null, unique, referential, row-count bounds) run in the pipeline, dbt-style, so a bad load fails loudly instead of silently corrupting dashboards." }
+      ],
+      template: null, example: null
+    },
+    practice: { type: "decomp", refs: [0, 3], note: "Clarify the data-quality edges first: malformed rows, duplicates, late files, and what 'clean' means to the consumer." },
+    quiz: [
+      { q: "A feed occasionally re-sends yesterday's records. The fix is:", choices: ["Ignore it", "Deduplicate on a natural key", "Add more servers", "Compress the file"], answer: 1, explain: "Dedup on a stable natural key makes re-sends and duplicates harmless." },
+      { q: "Keeping history when a dimension's attributes change is:", choices: ["SCD type 1 (overwrite)", "SCD type 2 (new versioned row)", "A fact table", "Normalization"], answer: 1, explain: "SCD type 2 adds a new versioned row so the past is preserved; type 1 overwrites." }
+    ],
+    recall: [
+      { front: "Handle duplicate or re-sent records?", back: "Deduplicate on a natural key; window on event time, not arrival time." },
+      { front: "SCD type 1 vs type 2?", back: "Type 1 overwrites (no history); type 2 adds a versioned row (keeps history)." }
+    ]
+  }
+];
+
+/* ===================== SQL PROBLEM BANK ===================== */
+var SQL_SETUP =
+  "CREATE TABLE sites (id INTEGER, name TEXT, region TEXT);" +
+  "INSERT INTO sites VALUES (1,'Harbor','West'),(2,'Ridge','West'),(3,'Delta','East');" +
+  "CREATE TABLE readings (id INTEGER, site_id INTEGER, ts TEXT, kwh INTEGER);" +
+  "INSERT INTO readings VALUES (1,1,'2024-01-01',10),(2,1,'2024-01-02',20),(3,1,'2024-01-03',30),(4,2,'2024-01-01',50),(5,2,'2024-01-02',60),(6,3,'2024-01-01',5),(7,3,'2024-01-02',15),(8,3,'2024-01-03',25);";
+
+var SQL_PROBLEMS = [
+  {
+    id: "sql-total-per-site", title: "Total usage per site", difficulty: "Easy",
+    prompt: "Return each site's name and its total kwh across all readings, ordered by name. Columns: name, total_kwh.",
+    starter: "-- tables: sites(id, name, region), readings(id, site_id, ts, kwh)\n-- return columns: name, total_kwh\nSELECT\n\nFROM readings r\n;",
+    solution: "SELECT s.name, SUM(r.kwh) AS total_kwh\nFROM readings r\nJOIN sites s ON s.id = r.site_id\nGROUP BY s.name\nORDER BY s.name;",
+    expected: { columns: ["name", "total_kwh"], rows: [["Delta", 45], ["Harbor", 60], ["Ridge", 110]] }
+  },
+  {
+    id: "sql-region-threshold", title: "West sites over a threshold", difficulty: "Easy",
+    prompt: "Return name and total_kwh for sites in the 'West' region whose total kwh is over 50, ordered by name. Columns: name, total_kwh.",
+    starter: "-- tables: sites(id, name, region), readings(id, site_id, ts, kwh)\n-- return columns: name, total_kwh\nSELECT\n\nFROM readings r\n;",
+    solution: "SELECT s.name, SUM(r.kwh) AS total_kwh\nFROM readings r\nJOIN sites s ON s.id = r.site_id\nWHERE s.region = 'West'\nGROUP BY s.name\nHAVING SUM(r.kwh) > 50\nORDER BY s.name;",
+    expected: { columns: ["name", "total_kwh"], rows: [["Harbor", 60], ["Ridge", 110]] }
+  },
+  {
+    id: "sql-running-total", title: "Running total for a site", difficulty: "Medium",
+    prompt: "For site_id 1, return each reading's ts, kwh, and a running total of kwh ordered by ts. Columns: ts, kwh, running_kwh.",
+    starter: "-- tables: readings(id, site_id, ts, kwh)\n-- return columns: ts, kwh, running_kwh\nSELECT\n\nFROM readings\nWHERE site_id = 1\n;",
+    solution: "SELECT ts, kwh,\n  SUM(kwh) OVER (ORDER BY ts) AS running_kwh\nFROM readings\nWHERE site_id = 1\nORDER BY ts;",
+    expected: { columns: ["ts", "kwh", "running_kwh"], rows: [["2024-01-01", 10, 10], ["2024-01-02", 20, 30], ["2024-01-03", 30, 60]] }
+  },
+  {
+    id: "sql-rank-sites", title: "Rank sites by usage", difficulty: "Medium",
+    prompt: "Rank sites by total kwh, highest first. Return name, total_kwh, and the rank (rnk), ordered by rank. Columns: name, total_kwh, rnk.",
+    starter: "-- tables: sites(id, name, region), readings(id, site_id, ts, kwh)\n-- return columns: name, total_kwh, rnk\nSELECT\n\nFROM readings r\n;",
+    solution: "SELECT s.name, SUM(r.kwh) AS total_kwh,\n  RANK() OVER (ORDER BY SUM(r.kwh) DESC) AS rnk\nFROM readings r\nJOIN sites s ON s.id = r.site_id\nGROUP BY s.name\nORDER BY rnk;",
+    expected: { columns: ["name", "total_kwh", "rnk"], rows: [["Ridge", 110, 1], ["Harbor", 60, 2], ["Delta", 45, 3]] }
   }
 ];

@@ -405,3 +405,13 @@ main#app { display: block; padding: 44px 0 72px; }
 @media (max-width: 860px) {
   .track-grid, .module-grid, .learn-points { grid-template-columns: 1fr; }
 }
+
+/* ---------- SQL playground ---------- */
+.coder-lang.sql { color: #1F8A5B; background: rgba(31,138,91,0.12); }
+.sql-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-top: 10px; }
+table.sql-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+table.sql-table th, table.sql-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+table.sql-table thead th { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sec); background: var(--surface-2); }
+table.sql-table td { font-family: var(--mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+table.sql-table tbody tr:last-child td { border-bottom: none; }
+.sql-empty { color: var(--muted); font-style: italic; }

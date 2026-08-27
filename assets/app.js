@@ -70,6 +70,72 @@
     w.postMessage({ code: code, tests: prob.tests, fnName: prob.fnName });
   }
 
+  /* ---------- SQL runner (SQLite via WASM, lazy-loaded) ---------- */
+  function sqlProblem(id) { return byId(SQL_PROBLEMS, id); }
+  var _sqlPromise = null;
+  function loadSql() {
+    if (_sqlPromise) return _sqlPromise;
+    _sqlPromise = new Promise(function (resolve, reject) {
+      var base = "https://cdn.jsdelivr.net/npm/sql.js@1/dist/";
+      var s = document.createElement("script");
+      s.src = base + "sql-wasm.js";
+      s.onload = function () {
+        if (typeof window.initSqlJs !== "function") { reject(new Error("SQL engine did not initialize.")); return; }
+        window.initSqlJs({ locateFile: function (f) { return base + f; } }).then(resolve, function (e) { reject(e); });
+      };
+      s.onerror = function () { reject(new Error("Could not load the SQL engine. Check your connection and retry.")); };
+      document.head.appendChild(s);
+    });
+    return _sqlPromise;
+  }
+  function eqResult(got, exp) {
+    return JSON.stringify(got.columns) === JSON.stringify(exp.columns) && JSON.stringify(got.values) === JSON.stringify(exp.rows);
+  }
+  function runSql(sqlProb, query, cb) {
+    loadSql().then(function (SQL) {
+      var db, res;
+      try { db = new SQL.Database(); db.run(SQL_SETUP); } catch (e) { cb({ error: "Setup error: " + (e.message || e) }); return; }
+      try { res = db.exec(query); } catch (e) { try { db.close(); } catch (_) {} cb({ error: String(e.message || e) }); return; }
+      try { db.close(); } catch (_) {}
+      if (!res || !res.length) { cb({ columns: [], rows: [], pass: false, empty: true }); return; }
+      var last = res[res.length - 1];
+      cb({ columns: last.columns, rows: last.values, pass: eqResult(last, sqlProb.expected) });
+    }, function (err) { cb({ error: err.message || "SQL engine failed to load." }); });
+  }
+  function cellStr(v) { return v === null || v === undefined ? "NULL" : String(v); }
+  function mountSqlCoder(container, sqlProb, opts) {
+    opts = opts || {};
+    var stKey = "sql:" + sqlProb.id;
+    var saved = state.code[stKey] || sqlProb.starter;
+    container.className = "coder";
+    container.innerHTML =
+      '<div class="coder-head"><span class="coder-title">' + esc(sqlProb.title) + ' <span class="chip-diff">' + esc(sqlProb.difficulty) + '</span></span><span class="coder-lang sql">SQL</span></div>' +
+      '<p class="coder-prompt">' + esc(sqlProb.prompt) + '</p>' +
+      '<textarea class="coder-editor" spellcheck="false">' + esc(saved) + '</textarea>' +
+      '<div class="coder-actions"><button class="btn btn-primary c-run">Run query</button><button class="btn btn-ghost c-reset">Reset</button>' +
+      (opts.showSolution ? '<button class="btn btn-ghost c-sol">Show solution</button>' : '') +
+      '<span class="coder-status" aria-live="polite"></span></div><div class="coder-results"></div>';
+    var ta = container.querySelector(".coder-editor"), results = container.querySelector(".coder-results"), status = container.querySelector(".coder-status");
+    if (state.solved[stKey]) { status.textContent = "Solved ✓"; status.className = "coder-status ok"; }
+    ta.addEventListener("keydown", function (e) { if (e.key === "Tab") { e.preventDefault(); var s = ta.selectionStart, en = ta.selectionEnd; ta.value = ta.value.slice(0, s) + "  " + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 2; } });
+    ta.addEventListener("input", function () { state.code[stKey] = ta.value; save(); });
+    container.querySelector(".c-run").addEventListener("click", function () {
+      status.textContent = "Running..."; status.className = "coder-status"; results.innerHTML = "";
+      runSql(sqlProb, ta.value, function (data) { renderSqlResults(results, status, data, sqlProb); if (data.pass && opts.onPass) opts.onPass(); });
+    });
+    container.querySelector(".c-reset").addEventListener("click", function () { ta.value = sqlProb.starter; state.code[stKey] = sqlProb.starter; save(); results.innerHTML = ""; status.textContent = ""; });
+    if (opts.showSolution) container.querySelector(".c-sol").addEventListener("click", function () { ta.value = sqlProb.solution; state.code[stKey] = sqlProb.solution; save(); });
+  }
+  function renderSqlResults(results, status, data, sqlProb) {
+    if (data.error) { status.textContent = "Error"; status.className = "coder-status err"; results.innerHTML = '<div class="res-err">' + esc(data.error) + '</div>'; return; }
+    var cols = data.columns || [], rows = data.rows || [];
+    var table = '<div class="sql-table-wrap"><table class="sql-table"><thead><tr>' + cols.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join("") + '</tr></thead><tbody>' +
+      (rows.length ? rows.map(function (r) { return '<tr>' + r.map(function (v) { return '<td>' + esc(cellStr(v)) + '</td>'; }).join("") + '</tr>'; }).join("") : '<tr><td class="sql-empty" colspan="' + Math.max(1, cols.length) + '">no rows</td></tr>') +
+      '</tbody></table></div>';
+    if (data.pass) { status.textContent = "Correct"; status.className = "coder-status ok"; results.innerHTML = '<div class="res-ok">Correct result ✓</div>' + table; }
+    else { status.textContent = "Not matching"; status.className = "coder-status err"; results.innerHTML = '<div class="res-row f"><span class="res-i">✗</span><span class="res-detail">Result does not match. Expected columns <code>' + esc(sqlProb.expected.columns.join(", ")) + '</code> and ' + sqlProb.expected.rows.length + ' row(s), in order.</span></div>' + table; }
+  }
+
   /* ---------- progress / readiness ---------- */
   function buildDone(id) { var s = state.builds[id]; return !!(s && RUBRIC.every(function (r) { return s[r.key]; })); }
   function recallCards(m) {
@@ -79,6 +145,7 @@
   function practiceDone(m) {
     var p = m.practice;
     if (p.type === "code") return p.refs.every(function (id) { return state.solved[id]; });
+    if (p.type === "sql") return p.refs.every(function (id) { return state.solved["sql:" + id]; });
     if (p.type === "decomp") return p.refs.every(function (i) { return state.decompDone.indexOf(i) !== -1; });
     if (p.type === "build") return p.refs.every(function (id) { return buildDone(id); });
     if (p.type === "framework") return p.refs.every(function (id) { return state.rag[id]; });
@@ -234,6 +301,11 @@
         var wrap = document.createElement("div"); area.appendChild(wrap);
         mountCoder(wrap, problem(id), { showSolution: true, onPass: function () { state.solved[id] = true; save(); chrome(); } });
       });
+    } else if (p.type === "sql") {
+      p.refs.forEach(function (id) {
+        var wrap = document.createElement("div"); area.appendChild(wrap);
+        mountSqlCoder(wrap, sqlProblem(id), { showSolution: true, onPass: function () { state.solved["sql:" + id] = true; save(); chrome(); } });
+      });
     } else if (p.type === "decomp") {
       p.refs.forEach(function (i) { area.appendChild(decompCard(i)); });
     } else if (p.type === "build") {
@@ -364,6 +436,10 @@
         var head = document.createElement("p"); head.className = "quiz-q"; head.innerHTML = '<span class="qi-num">Q' + (idx + 1) + '</span> Coding check - make all tests pass:'; wrap.appendChild(head);
         var cw = document.createElement("div"); wrap.appendChild(cw);
         mountCoder(cw, problem(item.code), { showSolution: false, onPass: function () { markQuiz(m, idx); } });
+      } else if (item.sql) {
+        var sh = document.createElement("p"); sh.className = "quiz-q"; sh.innerHTML = '<span class="qi-num">Q' + (idx + 1) + '</span> SQL check - return the exact result:'; wrap.appendChild(sh);
+        var sw = document.createElement("div"); wrap.appendChild(sw);
+        mountSqlCoder(sw, sqlProblem(item.sql), { showSolution: false, onPass: function () { markQuiz(m, idx); } });
       } else {
         wrap.appendChild(mcItem(m, item, idx));
       }
