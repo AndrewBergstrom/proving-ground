@@ -23,9 +23,13 @@
         <button class="tab" data-view="rag">RAG &amp; Agents</button>
         <button class="tab" data-view="method">Method</button>
       </nav>
-      <div class="progress-chip" id="progressChip" title="Your saved progress">
-        <span class="pc-num" id="pcNum">0</span><span class="pc-label">reps</span>
-      </div>
+      <button class="progress-ring" id="progressRing" title="Your overall progress" aria-label="Overall progress">
+        <svg viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
+          <circle class="ring-bg" cx="20" cy="20" r="16"></circle>
+          <circle class="ring-fg" id="ringFg" cx="20" cy="20" r="16"></circle>
+        </svg>
+        <span class="ring-pct" id="ringPct">0%</span>
+      </button>
     </div>
   </header>
 
@@ -43,6 +47,8 @@
             <button class="btn btn-ghost" data-goto="method">How this works</button>
           </div>
         </div>
+
+        <div class="dashboard" id="dashboard"><!-- populated by JS --></div>
 
         <div class="stat-strip">
           <div class="stat"><span class="stat-k">Graded on</span><span class="stat-v">reasoning, not the answer</span></div>

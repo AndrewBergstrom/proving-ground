@@ -354,7 +354,7 @@
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
-    renderProgressChip();
+    renderProgress();
   }
 
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
@@ -368,6 +368,7 @@
     if (name === "patterns") renderDeck();
     if (name === "decomp") renderDecomp();
     if (name === "builds") renderBuilds();
+    if (name === "loop") renderProgress();
   }
 
   $("#tabs").addEventListener("click", function (e) {
@@ -379,8 +380,74 @@
     if (g) showView(g.getAttribute("data-goto"));
   });
 
-  // ---------- progress chip ----------
-  function renderProgressChip() { $("#pcNum").textContent = String(state.reps); }
+  // ---------- progress dashboard + ring ----------
+  function computeProgress() {
+    var dTotal = DECOMP.length, dDone = state.decompDone.length;
+    var pTotal = PATTERNS.length;
+    var pMat = PATTERNS.filter(function (p) { return cardState(p.id).box >= 3; }).length;
+    var pDue = dueNow().length;
+    var bTotal = BUILDS.length, bDone = BUILDS.filter(function (b) { return buildDone(b.id); }).length;
+    var rTotal = RAG_STAGES.length, rDone = RAG_STAGES.filter(function (s) { return !!state.rag[s.id]; }).length;
+    var overall = (dDone / dTotal + pMat / pTotal + bDone / bTotal + rDone / rTotal) / 4;
+    return { dTotal: dTotal, dDone: dDone, pTotal: pTotal, pMat: pMat, pDue: pDue, bTotal: bTotal, bDone: bDone, rTotal: rTotal, rDone: rDone, overall: overall };
+  }
+
+  function renderProgress() {
+    var g = computeProgress();
+
+    // header ring
+    var C = 2 * Math.PI * 16;
+    var fg = $("#ringFg");
+    if (fg) { fg.style.strokeDasharray = C.toFixed(1); fg.style.strokeDashoffset = (C * (1 - g.overall)).toFixed(1); }
+    var pct = $("#ringPct");
+    if (pct) pct.textContent = Math.round(g.overall * 100) + "%";
+
+    // "due" nudge dot on the pattern deck tab
+    var patTab = $('.tab[data-view="patterns"]');
+    if (patTab) {
+      var dot = patTab.querySelector(".due-dot");
+      if (g.pDue > 0 && !dot) { dot = document.createElement("span"); dot.className = "due-dot"; patTab.appendChild(dot); }
+      else if (g.pDue === 0 && dot) { dot.remove(); }
+    }
+
+    // dashboard
+    var dash = $("#dashboard");
+    if (!dash) return;
+    dash.innerHTML = dashboardHTML(g);
+    var rst = $("#dashReset", dash);
+    if (rst) rst.addEventListener("click", resetAll);
+  }
+
+  function dashboardHTML(g) {
+    function tile(view, label, valHTML, sub, frac, good) {
+      return '<button class="dash-tile" data-goto="' + view + '">' +
+        '<div class="dt-label">' + label + '</div>' +
+        '<div class="dt-val">' + valHTML + '</div>' +
+        '<div class="dt-sub">' + sub + '</div>' +
+        '<div class="dt-bar' + (good ? " is-good" : "") + '"><span class="dt-fill" style="width:' + Math.round(frac * 100) + '%"></span></div>' +
+        '</button>';
+    }
+    function of(n) { return '<span class="dt-of"> / ' + n + '</span>'; }
+    var duePill = g.pDue > 0 ? '<span class="dt-pill">' + g.pDue + ' due</span>' : "";
+    return '<div class="dash-head"><h3>Your progress</h3>' +
+      '<button class="dash-reset" id="dashReset">Reset progress</button></div>' +
+      '<div class="dash-tiles">' +
+        tile("decomp", "Decomposition", g.dDone + of(g.dTotal), "prompts reviewed", g.dTotal ? g.dDone / g.dTotal : 0, g.dDone >= g.dTotal) +
+        tile("patterns", "Pattern deck", g.pMat + of(g.pTotal) + duePill, "patterns maturing", g.pTotal ? g.pMat / g.pTotal : 0, g.pMat >= g.pTotal) +
+        tile("builds", "Builds", g.bDone + of(g.bTotal), "self-scored", g.bTotal ? g.bDone / g.bTotal : 0, g.bDone >= g.bTotal) +
+        tile("rag", "RAG framework", g.rDone + of(g.rTotal), "stages internalized", g.rTotal ? g.rDone / g.rTotal : 0, g.rDone >= g.rTotal) +
+      '</div>';
+  }
+
+  function resetAll() {
+    if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
+    state = { patterns: {}, decompDone: [], rag: {}, builds: {}, reps: 0 };
+    queue = [];
+    save();
+    renderRag();
+    renderDecomp();
+    showView("loop");
+  }
 
   // ---------- decomposition ----------
   var decompIndex = 0;
@@ -651,15 +718,7 @@
   }
 
   // ---------- reset ----------
-  $("#resetProgress").addEventListener("click", function () {
-    if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
-    state = { patterns: {}, decompDone: [], rag: {}, builds: {}, reps: 0 };
-    queue = [];
-    save();
-    renderRag();
-    renderDecomp();
-    showView("loop");
-  });
+  $("#resetProgress").addEventListener("click", resetAll);
 
   // ---------- util ----------
   function esc(s) {
@@ -669,7 +728,7 @@
   }
 
   // ---------- init ----------
-  renderProgressChip();
+  renderProgress();
   renderRag();
   renderDecomp();
 })();
