@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proving Ground — interview prep for the practical engineer</title>
+  <meta name="description" content="Interview prep for the practical engineer: decomposition, practical builds, and system design for FDE, platform, and applied-AI loops. Not another LeetCode grind." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚒️</text></svg>" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="logo" href="#top" aria-label="Proving Ground home">
+        <span class="logo-mark">⚒</span>
+        <span class="logo-text">Proving&nbsp;Ground</span>
+      </a>
+      <nav class="tabs" id="tabs" aria-label="Sections">
+        <button class="tab is-active" data-view="loop">The Loop</button>
+        <button class="tab" data-view="decomp">Decomposition</button>
+        <button class="tab" data-view="patterns">Pattern Deck</button>
+        <button class="tab" data-view="rag">RAG &amp; Agents</button>
+        <button class="tab" data-view="method">Method</button>
+      </nav>
+      <div class="progress-chip" id="progressChip" title="Your saved progress">
+        <span class="pc-num" id="pcNum">0</span><span class="pc-label">reps</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ THE LOOP ============ -->
+    <section class="view is-active" data-view="loop">
+      <div class="wrap">
+        <div class="hero">
+          <p class="eyebrow">Interview prep for the practical engineer</p>
+          <h1>The rounds that actually decide FDE, platform, and applied-AI loops.</h1>
+          <p class="lede">Forward-deployed, platform, and AI-engineer interviews are not won by grinding LeetCode-hard. They are won on decomposition under ambiguity, shipping a working build, and reasoning about real systems. This trains exactly those, on evidence from how these loops are actually run and scored.</p>
+          <div class="hero-cta">
+            <button class="btn btn-primary" data-goto="decomp">Start with decomposition</button>
+            <button class="btn btn-ghost" data-goto="method">How this works</button>
+          </div>
+        </div>
+
+        <div class="stat-strip">
+          <div class="stat"><span class="stat-k">Graded on</span><span class="stat-v">reasoning, not the answer</span></div>
+          <div class="stat"><span class="stat-k">#1 rejection</span><span class="stat-v">jumping to code early</span></div>
+          <div class="stat"><span class="stat-k">Coding</span><span class="stat-v">practical builds, not puzzles</span></div>
+          <div class="stat"><span class="stat-k">Method</span><span class="stat-v">spaced, retrieval-based</span></div>
+        </div>
+
+        <h2 class="section-title">What these loops actually reward</h2>
+        <div class="cards-3">
+          <article class="infocard">
+            <h3>The four scored dimensions</h3>
+            <p>Across FAANG and the newer loops, evaluators score roughly four axes: <b>Communication</b>, <b>Problem Solving</b>, <b>Technical Competency</b>, and <b>Testing</b>. Clarifying questions are scored under two of them at once.</p>
+          </article>
+          <article class="infocard">
+            <h3>Decomposition beats optimization</h3>
+            <p>The FDE decomposition round is graded on how you break down a problem you have never seen, not on landing the optimal answer. Premature solutioning is the most common single reason candidates are rejected.</p>
+          </article>
+          <article class="infocard">
+            <h3>Ship, then explain</h3>
+            <p>Practical rounds want a running build and a clear walkthrough, scored on customer framing, build quality, adaptability, and explanation. A working, well-explained solution beats a clever, silent one.</p>
+          </article>
+        </div>
+
+        <h2 class="section-title">How the practical loop differs from the algorithm loop</h2>
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th>Round</th><th>Classic SWE loop</th><th>FDE / platform / applied-AI loop</th></tr></thead>
+            <tbody>
+              <tr><td>Coding</td><td>LeetCode medium/hard, hidden tests</td><td>Parse a messy CSV, build a CLI, a rate limiter, a small RAG pipeline; multi-part build-and-extend</td></tr>
+              <tr><td>Design</td><td>"Design Instagram" distributed systems</td><td>Retrieval-layer design, LLM query batching, evaluation design, cost and latency tradeoffs</td></tr>
+              <tr><td>Signature round</td><td>Two algorithm interviews</td><td>Decomposition under ambiguity; a shipped take-home with a recorded walkthrough</td></tr>
+              <tr><td>What wins</td><td>Optimal complexity, clean code</td><td>Clarifying the ask, framing for the customer, pragmatic shipping, clear explanation</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fineprint">Findings synthesized from adversarially-verified research across FDE and applied-AI interview reports (Exponent, interviewing.io, first-hand candidate accounts) and the coding-interview rubric literature. Exact loop shapes vary by company and team.</p>
+      </div>
+    </section>
+
+    <!-- ============ DECOMPOSITION ============ -->
+    <section class="view" data-view="decomp">
+      <div class="wrap">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow">Flagship trainer</p>
+            <h2>Decomposition under ambiguity</h2>
+            <p class="lede-sm">The highest-ROI skill in these loops. Read the vague prompt, and before you reveal anything, write down every clarifying question you would ask. Then check yourself against the dimensions strong candidates cover. The goal is reflex: never touch a solution until the problem is pinned down.</p>
+          </div>
+        </div>
+        <div class="decomp-stage" id="decompStage"><!-- populated by JS --></div>
+      </div>
+    </section>
+
+    <!-- ============ PATTERN DECK ============ -->
+    <section class="view" data-view="patterns">
+      <div class="wrap">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow">Spaced-repetition flashcards</p>
+            <h2>Pattern recognition deck</h2>
+            <p class="lede-sm">Pattern recognition is the transferable skill: read the tell, name the pattern. Each card shows a problem's signature. Recall the pattern, flip, then grade yourself. Cards you miss come back sooner. Your schedule is saved on this device.</p>
+          </div>
+          <div class="deck-meta">
+            <span class="due-badge" id="dueBadge">0 due</span>
+          </div>
+        </div>
+        <div class="deck-stage" id="deckStage"><!-- populated by JS --></div>
+      </div>
+    </section>
+
+    <!-- ============ RAG & AGENTS ============ -->
+    <section class="view" data-view="rag">
+      <div class="wrap">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow">Applied-AI design round</p>
+            <h2>RAG &amp; agent design framework</h2>
+            <p class="lede-sm">The applied-AI system design round has an emerging canonical shape. Walk any RAG or agent question through these six stages out loud. Tick each as you internalize it; the checklist is saved on this device.</p>
+          </div>
+        </div>
+        <div class="rag-grid" id="ragGrid"><!-- populated by JS --></div>
+
+        <h3 class="sub-title">Evaluation: the part candidates skip</h3>
+        <div class="cards-2">
+          <article class="infocard">
+            <h4>Score retrieval and generation separately</h4>
+            <p>When an answer is wrong, your first question is: bad retrieval or bad generation? Evaluate the two stages independently so you can localize the failure instead of guessing.</p>
+          </article>
+          <article class="infocard">
+            <h4>Know the metrics</h4>
+            <p><b>Retrieval:</b> Precision@k, Recall@k, Hit Rate, NDCG@k. <b>Generation:</b> faithfulness / groundedness, often via an LLM-as-judge, which reaches near-human agreement on chunk-level relevance.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ METHOD ============ -->
+    <section class="view" data-view="method">
+      <div class="wrap">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow">Why this app is built the way it is</p>
+            <h2>The study method</h2>
+            <p class="lede-sm">This tool encodes what learning science actually says works, from primary sources (Bjork &amp; Bjork's desirable difficulties, the spacing and retrieval-practice literature). The uncomfortable truth: the methods that feel efficient are the ones that fail you under pressure.</p>
+          </div>
+        </div>
+        <div class="method-grid">
+          <article class="method-card">
+            <span class="mc-num">01</span>
+            <h3>Retrieval over rereading</h3>
+            <p>Recalling an answer from memory strengthens it far more than reviewing it. That is why the pattern deck makes you name the pattern before it flips, and decomposition makes you write questions before revealing them.</p>
+          </article>
+          <article class="method-card">
+            <span class="mc-num">02</span>
+            <h3>Spacing over cramming</h3>
+            <p>Massed practice produces an illusion of mastery that evaporates within a week. Missed cards resurface sooner, mastered cards later. There is no perfect interval; any spaced review beats a single grind.</p>
+          </article>
+          <article class="method-card">
+            <span class="mc-num">03</span>
+            <h3>Interleaving over blocking</h3>
+            <p>The deck mixes patterns rather than drilling one at a time. Interleaving forces you to discriminate between confusable patterns, which is exactly what a real, unlabeled interview problem demands.</p>
+          </article>
+          <article class="method-card">
+            <span class="mc-num">04</span>
+            <h3>Fading the scaffolding</h3>
+            <p>Worked examples with steps gradually removed beat solved-then-solve pairs. Decomposition shows the dimensions only after you have generated your own, so the support fades as your reflex grows.</p>
+          </article>
+        </div>
+        <div class="method-foot">
+          <button class="btn btn-ghost btn-danger" id="resetProgress">Reset all progress on this device</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <span>Proving Ground</span>
+      <span class="dot">·</span>
+      <span>Progress is stored locally in your browser.</span>
+      <span class="dot">·</span>
+      <span>Built from adversarially-verified interview research. Loop details vary by company and change over time.</span>
+    </div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
