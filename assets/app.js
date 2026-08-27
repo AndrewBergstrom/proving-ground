@@ -1,751 +1,476 @@
-/* Proving Ground — app logic (vanilla JS, no build step) */
+/* Proving Ground - engine. Depends on data.js (TRACKS, MODULES, PROBLEMS, PATTERNS, DECOMP, BUILDS, RAG_STAGES, RUBRIC). */
 (function () {
   "use strict";
 
-  // ---------- data ----------
-  var PATTERNS = [
-    { id: "sliding", tell: "Longest / shortest / best contiguous subarray or substring meeting a condition.", name: "Sliding Window", why: "A moving window grows and shrinks over contiguous elements in O(n) instead of recomputing every subrange." },
-    { id: "twoptr", tell: "A sorted array; find a pair or triplet summing to a target, or work inward from both ends.", name: "Two Pointers", why: "Two indices moving toward each other exploit the sort order to skip whole regions." },
-    { id: "fastslow", tell: "Detect a cycle in a linked list, or find its middle in a single pass.", name: "Fast & Slow Pointers", why: "One pointer moves twice as fast; they meet inside a cycle and split the list by position." },
-    { id: "intervals", tell: "Overlapping intervals: merge them, insert one, or count concurrent events.", name: "Merge Intervals", why: "Sort by start, then sweep, merging or counting overlaps as you go." },
-    { id: "cyclic", tell: "An array of size n holding values 1..n; find the missing or duplicate in O(1) space.", name: "Cyclic Sort", why: "Each value has a home index, so you can place elements in one pass and read off anomalies." },
-    { id: "monostack", tell: "Next greater / smaller element, or the largest rectangle in a histogram.", name: "Monotonic Stack", why: "A stack kept in sorted order resolves 'nearest bigger/smaller' in amortized O(n)." },
-    { id: "twoheap", tell: "Find the median of a running stream, or keep two halves balanced.", name: "Two Heaps", why: "A max-heap for the lower half and min-heap for the upper give O(1) median access." },
-    { id: "subsets", tell: "Generate all combinations, permutations, or subsets of a set.", name: "Subsets / Backtracking", why: "Build candidates incrementally and undo the last choice to explore every branch." },
-    { id: "binsearch", tell: "A sorted or rotated-sorted array; find a target or a boundary in O(log n).", name: "Modified Binary Search", why: "Halve the search space each step by reasoning about which side must contain the answer." },
-    { id: "topk", tell: "The top K, smallest K, or K most frequent elements.", name: "Top-K (Heap)", why: "A size-K heap keeps only the candidates that matter in O(n log k)." },
-    { id: "kmerge", tell: "Merge K sorted lists or arrays into one sorted output.", name: "K-way Merge", why: "A min-heap of the K current heads always yields the next smallest element." },
-    { id: "reverse", tell: "Reverse a sublist or reorder a linked list in place.", name: "In-place Linked List Reversal", why: "Re-point next-pointers as you walk, using O(1) extra space." },
-    { id: "bfs", tell: "Shortest path or level-by-level traversal on an unweighted graph or tree.", name: "BFS", why: "A queue explores nodes in waves, so the first time you reach a node is the shortest way." },
-    { id: "dfs", tell: "Explore every path, count connected components, or flood-fill islands.", name: "DFS", why: "Recursion or a stack dives deep, marking visited nodes to cover the whole structure." },
-    { id: "topo", tell: "Order tasks with prerequisites, or detect a cycle in dependencies.", name: "Topological Sort", why: "Repeatedly emit nodes with no remaining incoming edges; leftovers mean a cycle." },
-    { id: "dp", tell: "Optimize a value under choices with overlapping subproblems (knapsack, coin change, edit distance).", name: "Dynamic Programming", why: "Define a state, a recurrence, and memoize so each subproblem is solved once." },
-    { id: "union", tell: "Group elements, merge sets, or track connected components as edges arrive.", name: "Union-Find", why: "Union by rank with path compression answers connectivity in near-constant time." },
-    { id: "prefix", tell: "Many range-sum queries, or a subarray summing to exactly K.", name: "Prefix Sum", why: "Precompute cumulative sums so any range is one subtraction; hash prefixes for subarray targets." },
-    { id: "greedy", tell: "Reach a global optimum by making the locally best choice each step (activity selection, jump game, assign cookies).", name: "Greedy", why: "When a local optimum provably leads to the global one, sort by the right key and take greedily." },
-    { id: "binsearchans", tell: "Minimize the maximum, or maximize the minimum, where feasibility is monotonic in the answer.", name: "Binary Search on the Answer", why: "If 'can we do it within budget X?' is monotonic, binary-search X and test feasibility each step." },
-    { id: "bitmask", tell: "Toggle or count bits, find the one non-duplicated number, or enumerate subsets compactly.", name: "Bit Manipulation", why: "XOR cancels pairs; a bitmask stores a whole set in one integer for fast set operations." },
-    { id: "trie", tell: "Many prefix lookups, autocomplete, or dictionary word search.", name: "Trie (Prefix Tree)", why: "Shared prefixes become shared paths, so a lookup costs O(word length) regardless of dictionary size." },
-    { id: "quickselect", tell: "Find the k-th smallest or largest element without fully sorting.", name: "Quickselect", why: "Partition like quicksort but recurse into only one side, averaging O(n)." },
-    { id: "dutch", tell: "Sort an array of three distinct categories in a single pass (0/1/2, colors).", name: "Dutch National Flag", why: "Three pointers partition into low, mid, and high regions in one linear scan." },
-    { id: "treedfs", tell: "Compute a value for each node from its children: subtree sums, height, or diameter.", name: "Tree DFS (Postorder)", why: "Recurse to the children first, then combine their results at the parent in one traversal." }
-  ];
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function byId(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+  function problem(id) { return byId(PROBLEMS, id); }
 
-  var DECOMP = [
-    {
-      badge: "FDE · data integration",
-      prompt: "A customer sends us a messy CSV of their orders every day. Build something that turns it into clean, queryable data.",
-      dims: [
-        { h: "Inputs", q: ["What's the schema, and is it stable day to day?", "Encoding, delimiter, size, how is it delivered?", "Who owns the source if it breaks?"] },
-        { h: "Constraints", q: ["One-time or recurring? What cadence?", "Latency budget: minutes or hours after arrival?", "What happens on a bad file: retry, alert, skip?"] },
-        { h: "Scale", q: ["Rows per day now, and expected growth?", "How many customers / feeds like this?"] },
-        { h: "Edge cases", q: ["Malformed rows, missing fields, duplicates?", "Timezone / currency / encoding inconsistencies?", "Partial or late files?"] },
-        { h: "Success criteria", q: ["What does 'queryable' mean: a DB, an API, a dashboard?", "Who queries it and how often?"] },
-        { h: "Ambiguities", q: ["Any existing pipeline or warehouse to fit into?", "Auth, PII, retention requirements?"] }
-      ]
-    },
-    {
-      badge: "Applied-AI · retrieval",
-      prompt: "Design the retrieval layer for a customer's private knowledge base so their chatbot can answer questions from it.",
-      dims: [
-        { h: "Inputs", q: ["Document types, volume, and update frequency?", "Structured, unstructured, or mixed?", "One tenant or many (isolation)?"] },
-        { h: "Constraints", q: ["Latency budget per query?", "Cost ceiling per query / per month?", "Freshness: how fast must new docs be searchable?"] },
-        { h: "Scale", q: ["Number of documents and total tokens?", "Queries per second at peak?"] },
-        { h: "Edge cases", q: ["Out-of-scope questions: refuse or fall back?", "Stale or conflicting documents?", "No good match found?"] },
-        { h: "Success criteria", q: ["How do we measure answer quality: what evals?", "Retrieval quality vs generation quality separately?"] },
-        { h: "Ambiguities", q: ["Chunking and embedding strategy assumptions?", "Privacy, access control, audit needs?"] }
-      ]
-    },
-    {
-      badge: "Platform · reliability",
-      prompt: "Build a rate limiter for our public API.",
-      dims: [
-        { h: "Inputs", q: ["Limit per user, per IP, per API key, per endpoint?", "What identifies a caller?"] },
-        { h: "Constraints", q: ["What limits and what window shape?", "Single node or distributed across many?", "Fail open or fail closed under load?"] },
-        { h: "Scale", q: ["Requests per second and number of clients?", "How many gateway nodes share state?"] },
-        { h: "Edge cases", q: ["Bursts, clock skew, race conditions on the counter?", "What response on limit: 429, headers, retry-after?"] },
-        { h: "Success criteria", q: ["Accuracy vs performance tradeoff acceptable?", "Observability: how do we see who's throttled?"] },
-        { h: "Ambiguities", q: ["Algorithm: token bucket, sliding window, fixed window?", "Shared store: Redis, in-memory, gateway-native?"] }
-      ]
-    },
-    {
-      badge: "Platform · observability",
-      prompt: "A team wants a dashboard showing the health of their data pipelines.",
-      dims: [
-        { h: "Inputs", q: ["Which pipelines, and what signals define 'health'?", "Where does the telemetry come from?"] },
-        { h: "Constraints", q: ["Real-time or periodic refresh?", "Data retention window?"] },
-        { h: "Scale", q: ["How many pipelines and how much event volume?", "How many viewers, how often?"] },
-        { h: "Edge cases", q: ["A pipeline is fully down vs degraded?", "Missing or delayed metrics?", "Alerting on top of the dashboard?"] },
-        { h: "Success criteria", q: ["What decisions should this dashboard drive?", "Who is the primary user: on-call, lead, exec?"] },
-        { h: "Ambiguities", q: ["Existing tooling (Grafana, Datadog) to use?", "Build vs configure?"] }
-      ]
-    },
-    {
-      badge: "FDE · systems integration",
-      prompt: "A customer wants their Salesforce data synced into our product every night so their reps see it in-app.",
-      dims: [
-        { h: "Inputs", q: ["Which objects and fields, and is it full or incremental?", "Their Salesforce edition and API limits?"] },
-        { h: "Constraints", q: ["Is nightly enough, or do they expect near-real-time?", "One-way or bidirectional sync?", "How do we stay under their API rate limits?"] },
-        { h: "Scale", q: ["Record counts today and growth?", "How many customers will run this same sync?"] },
-        { h: "Edge cases", q: ["Deleted records, field-mapping conflicts, schema changes on their side?", "A sync that fails halfway through?"] },
-        { h: "Success criteria", q: ["What does 'synced' mean: a freshness SLA, reconciled counts?", "Who notices first if it breaks?"] },
-        { h: "Ambiguities", q: ["Per-tenant OAuth and PII handling?", "Any existing ETL or warehouse to reuse?"] }
-      ]
-    },
-    {
-      badge: "Platform · eventing",
-      prompt: "Design a system that reliably delivers event notifications to customers' webhook endpoints.",
-      dims: [
-        { h: "Inputs", q: ["Which events, what payload shape?", "How many endpoints per customer?"] },
-        { h: "Constraints", q: ["At-least-once or exactly-once delivery?", "Is ordering guaranteed?", "Target delivery latency?"] },
-        { h: "Scale", q: ["Events per second and fan-out per event?", "Number of subscribers?"] },
-        { h: "Edge cases", q: ["Endpoint down or slow: retries and backoff?", "Poison events, duplicate delivery, thundering herd on recovery?"] },
-        { h: "Success criteria", q: ["Delivery success rate and dead-letter handling?", "What observability do customers get?"] },
-        { h: "Ambiguities", q: ["Payload signing and verification?", "Idempotency keys and replay support?"] }
-      ]
-    },
-    {
-      badge: "Applied-AI · agents",
-      prompt: "Build an agent that can take actions in a customer's system on their behalf, like updating records or sending messages.",
-      dims: [
-        { h: "Inputs", q: ["Which tools/actions, and what triggers a run?", "What context does the agent get?"] },
-        { h: "Constraints", q: ["Latency and cost per run?", "Which actions require human approval before executing?"] },
-        { h: "Scale", q: ["Runs per day and concurrency?", "How many tools in the toolset?"] },
-        { h: "Edge cases", q: ["A wrong or harmful action, a failed tool call?", "Ambiguous instructions or an infinite loop?"] },
-        { h: "Success criteria", q: ["Task success rate, and how do you measure it?", "What does a good eval look like?"] },
-        { h: "Ambiguities", q: ["Guardrails, approval gates, and permission scoping?", "Auditability of every action taken?"] }
-      ]
-    },
-    {
-      badge: "Applied-AI · internal tool",
-      prompt: "Our support team wants an internal tool that surfaces past tickets similar to the one they're working on.",
-      dims: [
-        { h: "Inputs", q: ["Which ticket fields, and how much history?", "Is similarity by text, metadata, or both?"] },
-        { h: "Constraints", q: ["Latency per search and freshness of new tickets?", "Privacy or on-prem requirements?"] },
-        { h: "Scale", q: ["Number of tickets and searches per day?", "Concurrent agents?"] },
-        { h: "Edge cases", q: ["No similar ticket exists; stale or duplicate tickets?", "PII inside ticket text?"] },
-        { h: "Success criteria", q: ["Do agents resolve faster? How is 'similar' judged?", "How would you measure it?"] },
-        { h: "Ambiguities", q: ["Build vs reuse existing search infra?", "Ranking signals and a feedback loop?"] }
-      ]
-    }
-  ];
+  var INTERVALS = [0, 1, 3, 7, 16, 35], DAY = 86400000;
+  function humanDays(d) { if (d < 1) return "now"; if (d < 7) return d + "d"; if (d < 30) return Math.round(d / 7) + "w"; return Math.round(d / 30) + "mo"; }
 
-  var RAG_STAGES = [
-    { id: "scope", step: "Stage 1", h: "Scope", p: "Inputs, outputs, latency budget, cost ceiling, and what a wrong answer actually costs. Frame the problem before any architecture." },
-    { id: "ingest", step: "Stage 2", h: "Ingest", p: "Chunk and embed source documents into a vector store. Justify chunk size, overlap, and indexing choices out loud." },
-    { id: "retrieve", step: "Stage 3", h: "Retrieve", p: "Embed the query, pull a tight top-k, and consider reranking. Retrieve less but more relevant to control cost and noise." },
-    { id: "act", step: "Stage 4", h: "Act / Generate", p: "Structured output for reliability. For agents, define the tools, their schemas, and approval gates before any action." },
-    { id: "guard", step: "Stage 5", h: "Guardrails", p: "Refuse out-of-scope requests, validate outputs, and route to a human above confidence or risk thresholds." },
-    { id: "eval", step: "Stage 6", h: "Evaluate", p: "Measure retrieval and generation quality separately so you can localize failures, and track them over time." }
-  ];
-
-  var BUILDS = [
-    {
-      id: "csv",
-      badge: "FDE · data integration",
-      title: "Messy CSV → clean, queryable data",
-      brief: "A customer drops a CSV of their orders into a folder every night. Build a small tool that turns each file into clean, queryable data your team can trust.",
-      clarify: [
-        "Pick the target: a SQLite table, Parquet + DuckDB, or a small query API. Justify it.",
-        "Define the canonical schema and the natural key that identifies a unique order.",
-        "Decide failure behavior up front: quarantine bad rows with reasons, never crash or drop silently.",
-        "Decide idempotency: re-running the same file must not double-count."
-      ],
-      build: [
-        "Parse robustly: handle encoding, delimiter, and header-name variance.",
-        "Validate and coerce types; collect row-level errors instead of failing the whole file.",
-        "Deduplicate on the natural key so the run is idempotent.",
-        "Write to your chosen store and emit a summary: rows in, out, and rejected.",
-        "Make it a real CLI: input path, --dry-run, and --verbose flags."
-      ],
-      curveball: "Some nightly files now arrive gzipped, and occasionally a file is a partial re-send of yesterday. Handle both without reprocessing or duplicating data, and without changing the command your team already runs.",
-      explain: [
-        "Lead with the customer's need, not your architecture.",
-        "Run it live on a deliberately messy file and show the summary counts.",
-        "Justify your dedupe strategy and what happens to bad rows."
-      ],
-      reference: [
-        "Idempotent upserts keyed on a natural key, so re-runs are safe.",
-        "Bad rows quarantined to a rejects file with reasons, not dropped silently.",
-        "Config over hardcoding; the tool is re-runnable and observable.",
-        "A working end-to-end run, not a notebook that only works once."
-      ]
-    },
-    {
-      id: "ratelimit",
-      badge: "Platform · reliability",
-      title: "Rate limiter for a public API",
-      brief: "Add rate limiting to a public API so one noisy client can't degrade it for everyone.",
-      clarify: [
-        "What identifies a caller: API key, user, or IP? Per-endpoint or global?",
-        "What limit and window shape, and is state single-node or shared across nodes?",
-        "Fail open or fail closed if the limiter's store is unavailable?",
-        "Response contract on limit: 429 with Retry-After and X-RateLimit-* headers?"
-      ],
-      build: [
-        "Choose an algorithm (token bucket or sliding window) and justify it.",
-        "Get the boundary right: no double-count race under concurrent requests.",
-        "Return 429 with Retry-After and rate-limit headers.",
-        "Make limits configurable per route or plan.",
-        "Handle the store being down: degrade gracefully, don't return 500s."
-      ],
-      curveball: "You now run three API nodes behind a load balancer. Make the limit global across nodes, and reason about what happens when the shared store has 50ms latency or briefly goes down.",
-      explain: [
-        "Walk your algorithm choice and its burst behavior.",
-        "Explain the distributed-state tradeoff you made.",
-        "Show the failure mode: what a client sees when the store is unavailable."
-      ],
-      reference: [
-        "Token bucket tolerates bursts; sliding window is smoother but costlier.",
-        "Atomic increment (e.g. Redis INCR/EXPIRE or a Lua script) avoids races.",
-        "Graceful degradation when the store is down beats hard failures.",
-        "Standard headers and per-plan config; a demo that hits the limit and recovers."
-      ]
-    },
-    {
-      id: "rag",
-      badge: "Applied-AI · retrieval",
-      title: "Minimal RAG service with an 'I don't know'",
-      brief: "Build a minimal RAG service that answers questions over a folder of a customer's documents, and can tell you when it doesn't know.",
-      clarify: [
-        "Document types, volume, and how often they change?",
-        "Latency and cost budget per query?",
-        "Out-of-scope behavior: refuse, or answer from general knowledge?",
-        "How will you measure that it works: what does the eval look like?"
-      ],
-      build: [
-        "Ingest: chunk and embed into a vector store; justify chunk size and overlap.",
-        "Retrieve: embed the query, pull a tight top-k, optionally rerank.",
-        "Generate: a grounded, structured answer that cites its sources.",
-        "Guardrail: abstain when retrieval is weak; never fabricate.",
-        "Evaluate: a tiny eval set, scoring retrieval and generation separately."
-      ],
-      curveball: "The customer says answers are sometimes confidently wrong. Add a way to detect and cut low-grounding answers, and show a metric that proves it improved.",
-      explain: [
-        "Walk the six stages: scope, ingest, retrieve, generate, guardrails, evaluate.",
-        "Show one strong answer and one correct refusal.",
-        "State your eval numbers, retrieval and generation kept separate."
-      ],
-      reference: [
-        "Evaluate retrieval (Precision@k, NDCG) and generation (faithfulness) separately.",
-        "An abstain path with a confidence threshold beats a confident hallucination.",
-        "Cite sources so answers are auditable.",
-        "Cache embeddings and keep top-k tight to control cost and latency."
-      ]
-    },
-    {
-      id: "refactor",
-      badge: "Build quality · adaptability",
-      title: "Refactor under a new requirement, keep tests green",
-      brief: "You're handed a working-but-gnarly module with a passing test suite. A new requirement lands. Ship it without breaking the tests or the readability.",
-      clarify: [
-        "What exactly is the new requirement, and are the existing tests the contract?",
-        "Any performance or interface-stability constraints?",
-        "Is readability itself part of what's being judged? (Usually yes.)"
-      ],
-      build: [
-        "Run the tests first and understand current behavior before touching anything.",
-        "Refactor in small, safe steps (extract, rename), tests green between each.",
-        "Add the new behavior behind a clear seam; write tests for it.",
-        "Keep the public interface stable unless changing it is the point."
-      ],
-      curveball: "A second, slightly conflicting requirement arrives. Show how your refactor made it a small change instead of a rewrite.",
-      explain: [
-        "Narrate the refactor as a sequence of green steps, not one big leap.",
-        "Point to the seam that made the second change cheap.",
-        "Show the test suite still passing at the end."
-      ],
-      reference: [
-        "Characterization tests first to lock current behavior.",
-        "Small green steps; never a long red period.",
-        "New behavior isolated behind a seam; interface kept stable.",
-        "Adaptability is proven by the second change being cheap, not the first."
-      ]
-    },
-    {
-      id: "webhooks",
-      badge: "Platform · eventing",
-      title: "Webhook delivery service with retries",
-      brief: "Build a service that delivers event notifications to customer webhook URLs and keeps trying when they fail.",
-      clarify: [
-        "Delivery guarantee: at-least-once? Is ordering required?",
-        "Retry and backoff policy, and when do you give up (dead-letter)?",
-        "Do you sign payloads so customers can verify them?",
-        "How do customers dedupe if they receive an event twice?"
-      ],
-      build: [
-        "Accept events and enqueue them, decoupled from the producer.",
-        "POST to the endpoint; treat non-2xx and timeouts as failures.",
-        "Retry with exponential backoff and jitter, capped, then dead-letter.",
-        "Sign payloads and include an idempotency key.",
-        "Expose delivery status and basic observability."
-      ],
-      curveball: "A customer's endpoint is down for six hours, then comes back. Make sure their events aren't lost and don't replay in a thundering herd, and that one bad endpoint can't starve delivery to everyone else.",
-      explain: [
-        "State your delivery guarantee and how you achieve it.",
-        "Walk the backoff strategy and the dead-letter path.",
-        "Show how one slow customer is isolated from the rest."
-      ],
-      reference: [
-        "A durable queue so events survive a crash; ingestion decoupled from delivery.",
-        "Exponential backoff with jitter and a max-attempt cap, then dead-letter.",
-        "Per-customer isolation so one slow endpoint can't block others.",
-        "Signed payloads plus idempotency keys so customers can verify and dedupe."
-      ]
-    },
-    {
-      id: "evalharness",
-      badge: "Applied-AI · evaluation",
-      title: "Eval harness for an LLM feature",
-      brief: "An LLM feature 'works on the demo' but nobody knows if a change makes it better or worse. Build an eval harness that answers that.",
-      clarify: [
-        "What exactly is the task, and what does 'correct' mean for it?",
-        "Where does the eval set come from, and how representative is it?",
-        "Offline eval on a fixed set, online on live traffic, or both?"
-      ],
-      build: [
-        "Assemble a small, representative eval set with expected outputs or rubrics.",
-        "Choose metrics that match the task (exact match, rubric score, faithfulness).",
-        "Run the current system over the set and record scores reproducibly.",
-        "Make it a one-command run any change can be measured against.",
-        "Report per-case results so regressions are debuggable, not just an aggregate."
-      ],
-      curveball: "The task has no single right answer. Add an LLM-as-judge scorer, then show how you'd check the judge itself isn't biased or drifting.",
-      explain: [
-        "Explain how the eval set was built and why the metrics fit.",
-        "State the pass/fail bar that makes 'better or worse' objective.",
-        "Show a per-case view where a regression would surface."
-      ],
-      reference: [
-        "A version-controlled eval set and reproducible run beat vibes-based checks.",
-        "Metrics fit the task; per-case output makes regressions debuggable.",
-        "Validate an LLM-judge against human labels on a sample before trusting it.",
-        "A clear pass/fail bar so shipping decisions are objective."
-      ]
-    }
-  ];
-
-  var RUBRIC = [
-    { key: "framing", name: "Customer framing", desc: "Did the design start from the customer's need?" },
-    { key: "quality", name: "Build quality", desc: "Clean code and a genuinely working result, not a demo." },
-    { key: "adapt", name: "Adaptability", desc: "Handled the curveball without breaking what worked." },
-    { key: "explain", name: "Explanation", desc: "Could clearly walk someone through the decisions." }
-  ];
-
-  var INTERVALS = [0, 1, 3, 7, 16, 35]; // days per box
-  var DAY = 86400000;
-
-  // ---------- state ----------
-  var KEY = "pg.v1";
+  /* ---------- state ---------- */
+  var KEY = "pg.v2";
   var state = load();
-
   function load() {
-    try {
-      var s = JSON.parse(localStorage.getItem(KEY) || "{}");
-      s.patterns = s.patterns || {};
-      s.decompDone = s.decompDone || [];
-      s.rag = s.rag || {};
-      s.builds = s.builds || {};
-      s.reps = s.reps || 0;
-      return s;
-    } catch (e) {
-      return { patterns: {}, decompDone: [], rag: {}, builds: {}, reps: 0 };
-    }
+    var s;
+    try { s = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { s = {}; }
+    s.code = s.code || {}; s.solved = s.solved || {}; s.quiz = s.quiz || {};
+    s.learned = s.learned || {}; s.cards = s.cards || {}; s.rag = s.rag || {};
+    s.builds = s.builds || {}; s.decompDone = s.decompDone || [];
+    return s;
   }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
-    renderProgress();
-  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} updateRing(); }
 
-  var $ = function (sel, root) { return (root || document).querySelector(sel); };
-  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
-
-  // ---------- navigation ----------
-  function showView(name) {
-    $$(".view").forEach(function (v) { v.classList.toggle("is-active", v.getAttribute("data-view") === name); });
-    $$(".tab").forEach(function (t) { t.classList.toggle("is-active", t.getAttribute("data-view") === name); });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (name === "patterns") renderDeck();
-    if (name === "decomp") renderDecomp();
-    if (name === "builds") renderBuilds();
-    if (name === "loop") renderProgress();
-  }
-
-  $("#tabs").addEventListener("click", function (e) {
-    var b = e.target.closest(".tab");
-    if (b) showView(b.getAttribute("data-view"));
-  });
-  document.addEventListener("click", function (e) {
-    var g = e.target.closest("[data-goto]");
-    if (g) showView(g.getAttribute("data-goto"));
-  });
-
-  // ---------- progress dashboard + ring ----------
-  function computeProgress() {
-    var dTotal = DECOMP.length, dDone = state.decompDone.length;
-    var pTotal = PATTERNS.length;
-    var pMat = PATTERNS.filter(function (p) { return cardState(p.id).box >= 3; }).length;
-    var pDue = dueNow().length;
-    var bTotal = BUILDS.length, bDone = BUILDS.filter(function (b) { return buildDone(b.id); }).length;
-    var rTotal = RAG_STAGES.length, rDone = RAG_STAGES.filter(function (s) { return !!state.rag[s.id]; }).length;
-    var overall = (dDone / dTotal + pMat / pTotal + bDone / bTotal + rDone / rTotal) / 4;
-    return { dTotal: dTotal, dDone: dDone, pTotal: pTotal, pMat: pMat, pDue: pDue, bTotal: bTotal, bDone: bDone, rTotal: rTotal, rDone: rDone, overall: overall };
-  }
-
-  function renderProgress() {
-    var g = computeProgress();
-
-    // header ring
-    var C = 2 * Math.PI * 16;
-    var fg = $("#ringFg");
-    if (fg) { fg.style.strokeDasharray = C.toFixed(1); fg.style.strokeDashoffset = (C * (1 - g.overall)).toFixed(1); }
-    var pct = $("#ringPct");
-    if (pct) pct.textContent = Math.round(g.overall * 100) + "%";
-
-    // "due" nudge dot on the pattern deck tab
-    var patTab = $('.tab[data-view="patterns"]');
-    if (patTab) {
-      var dot = patTab.querySelector(".due-dot");
-      if (g.pDue > 0 && !dot) { dot = document.createElement("span"); dot.className = "due-dot"; patTab.appendChild(dot); }
-      else if (g.pDue === 0 && dot) { dot.remove(); }
-    }
-
-    // dashboard
-    var dash = $("#dashboard");
-    if (!dash) return;
-    dash.innerHTML = dashboardHTML(g);
-    var rst = $("#dashReset", dash);
-    if (rst) rst.addEventListener("click", resetAll);
-  }
-
-  function dashboardHTML(g) {
-    function tile(view, label, valHTML, sub, frac, good) {
-      return '<button class="dash-tile" data-goto="' + view + '">' +
-        '<div class="dt-label">' + label + '</div>' +
-        '<div class="dt-val">' + valHTML + '</div>' +
-        '<div class="dt-sub">' + sub + '</div>' +
-        '<div class="dt-bar' + (good ? " is-good" : "") + '"><span class="dt-fill" style="width:' + Math.round(frac * 100) + '%"></span></div>' +
-        '</button>';
-    }
-    function of(n) { return '<span class="dt-of"> / ' + n + '</span>'; }
-    var duePill = g.pDue > 0 ? '<span class="dt-pill">' + g.pDue + ' due</span>' : "";
-    return '<div class="dash-head"><h3>Your progress</h3>' +
-      '<button class="dash-reset" id="dashReset">Reset progress</button></div>' +
-      '<div class="dash-tiles">' +
-        tile("decomp", "Decomposition", g.dDone + of(g.dTotal), "prompts reviewed", g.dTotal ? g.dDone / g.dTotal : 0, g.dDone >= g.dTotal) +
-        tile("patterns", "Pattern deck", g.pMat + of(g.pTotal) + duePill, "patterns maturing", g.pTotal ? g.pMat / g.pTotal : 0, g.pMat >= g.pTotal) +
-        tile("builds", "Builds", g.bDone + of(g.bTotal), "self-scored", g.bTotal ? g.bDone / g.bTotal : 0, g.bDone >= g.bTotal) +
-        tile("rag", "RAG framework", g.rDone + of(g.rTotal), "stages internalized", g.rTotal ? g.rDone / g.rTotal : 0, g.rDone >= g.rTotal) +
-      '</div>';
-  }
-
-  function resetAll() {
-    if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
-    state = { patterns: {}, decompDone: [], rag: {}, builds: {}, reps: 0 };
-    queue = [];
-    save();
-    renderRag();
-    renderDecomp();
-    showView("loop");
-  }
-
-  // ---------- decomposition ----------
-  var decompIndex = 0;
-  function renderDecomp() {
-    var p = DECOMP[decompIndex];
-    var stage = $("#decompStage");
-    var done = state.decompDone.indexOf(decompIndex) !== -1;
-    stage.innerHTML =
-      '<div class="decomp-card">' +
-        '<div class="decomp-top">' +
-          '<span class="decomp-badge">' + esc(p.badge) + '</span>' +
-          '<p class="decomp-prompt">' + esc(p.prompt) + '</p>' +
-        '</div>' +
-        '<div class="decomp-body">' +
-          '<p class="decomp-instruct">Write every clarifying question you would ask before proposing anything. Then reveal the dimensions strong candidates cover and check what you missed.</p>' +
-          '<textarea class="decomp-input" id="decompInput" placeholder="Your clarifying questions..."></textarea>' +
-          '<div class="decomp-actions">' +
-            '<button class="btn btn-primary" id="revealBtn">Reveal the dimensions</button>' +
-            '<button class="btn btn-ghost" id="markBtn">' + (done ? "Reviewed ✓" : "Mark reviewed") + '</button>' +
-          '</div>' +
-          '<div class="reveal-panel" id="revealPanel">' +
-            '<p class="reveal-title">Dimensions a strong candidate surfaces</p>' +
-            '<div class="dim-list">' + p.dims.map(dimHTML).join("") + '</div>' +
-          '</div>' +
-          '<div class="decomp-nav">' +
-            '<button class="btn btn-ghost" id="prevPrompt">← Previous</button>' +
-            '<span class="decomp-counter">' + (decompIndex + 1) + " / " + DECOMP.length + '</span>' +
-            '<button class="btn btn-ghost" id="nextPrompt">Next →</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-
-    $("#revealBtn").addEventListener("click", function () { $("#revealPanel").classList.add("show"); });
-    $("#markBtn").addEventListener("click", function () {
-      if (state.decompDone.indexOf(decompIndex) === -1) {
-        state.decompDone.push(decompIndex);
-        state.reps += 1;
-        save();
-        this.textContent = "Reviewed ✓";
-      }
-    });
-    $("#prevPrompt").addEventListener("click", function () { decompIndex = (decompIndex - 1 + DECOMP.length) % DECOMP.length; renderDecomp(); });
-    $("#nextPrompt").addEventListener("click", function () { decompIndex = (decompIndex + 1) % DECOMP.length; renderDecomp(); });
-  }
-  function dimHTML(d) {
-    return '<div class="dim"><h4>' + esc(d.h) + "</h4><ul>" +
-      d.q.map(function (q) { return "<li>" + esc(q) + "</li>"; }).join("") + "</ul></div>";
-  }
-
-  // ---------- practical build track ----------
-  var buildIndex = 0;
-  function buildDone(id) {
-    var s = state.builds[id];
-    return !!(s && RUBRIC.every(function (r) { return s[r.key]; }));
-  }
-  function renderBuilds() {
-    var b = BUILDS[buildIndex];
-    var scores = state.builds[b.id] || {};
-    var stage = $("#buildStage");
-    stage.innerHTML =
-      '<div class="build-card">' +
-        '<div class="build-top">' +
-          '<span class="build-badge">' + esc(b.badge) + '</span>' +
-          '<h3 class="build-title">' + esc(b.title) + '</h3>' +
-          '<p class="build-brief">' + esc(b.brief) + '</p>' +
-        '</div>' +
-        '<div class="build-body">' +
-          stepBlock("1", "Clarify &amp; scope", "Lock these decisions before you write code.", listHTML(b.clarify)) +
-          stepBlock("2", "Build it in your editor", "What a solid build includes. Timebox it like a take-home.", listHTML(b.build)) +
-          stepBlock("3", "Handle the curveball", "Reveal only after your first version works.",
-            '<button class="btn btn-ghost reveal-btn" data-reveal="cb">Reveal the curveball</button>' +
-            '<div class="reveal-box" data-box="cb"><div class="curveball">' + esc(b.curveball) + '</div></div>') +
-          stepBlock("4", "Explain it", "Record a 2-minute walkthrough covering:", listHTML(b.explain)) +
-          stepBlock("5", "Self-score", "Rate yourself on the four dimensions interviewers actually use.", rubricHTML(b, scores)) +
-          stepBlock("6", "What good looks like", "Attempt everything above first, then check yourself.",
-            '<button class="btn btn-ghost reveal-btn" data-reveal="ref">Reveal the reference</button>' +
-            '<div class="reveal-box" data-box="ref"><div class="reference"><h5>Signals of a strong build</h5><ul>' +
-            b.reference.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + '</ul></div></div>') +
-        '</div>' +
-        '<div class="build-nav">' +
-          '<button class="btn btn-ghost" id="prevBuild">← Previous</button>' +
-          '<div class="build-pills">' + BUILDS.map(function (x) { return '<span class="bpill' + (buildDone(x.id) ? " done" : "") + '"></span>'; }).join("") + '</div>' +
-          '<button class="btn btn-ghost" id="nextBuild">Next →</button>' +
-        '</div>' +
-      '</div>';
-
-    $$('[data-reveal]', stage).forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var box = $('[data-box="' + btn.getAttribute("data-reveal") + '"]', stage);
-        if (box) { box.classList.add("show"); btn.style.display = "none"; }
-      });
-    });
-    $$(".rate", stage).forEach(function (btn) {
-      btn.addEventListener("click", function () { rate(b.id, btn.getAttribute("data-dim"), parseInt(btn.getAttribute("data-val"), 10)); });
-    });
-    $("#prevBuild").addEventListener("click", function () { buildIndex = (buildIndex - 1 + BUILDS.length) % BUILDS.length; renderBuilds(); });
-    $("#nextBuild").addEventListener("click", function () { buildIndex = (buildIndex + 1) % BUILDS.length; renderBuilds(); });
-  }
-  function stepBlock(n, title, note, body) {
-    return '<div class="build-step"><div class="step-h"><span class="step-n">' + n + '</span><h4>' + title + '</h4></div>' +
-      (note ? '<p class="step-note">' + note + "</p>" : "") + body + "</div>";
-  }
-  function listHTML(items) {
-    return '<ul class="build-list">' + items.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>";
-  }
-  function rubricHTML(b, scores) {
-    var labels = { 1: "Poor", 2: "OK", 3: "Strong" };
-    var rows = RUBRIC.map(function (r) {
-      var chosen = scores[r.key];
-      var buttons = [1, 2, 3].map(function (v) {
-        return '<button class="rate' + (chosen === v ? " sel" : "") + '" data-dim="' + r.key + '" data-val="' + v + '">' + labels[v] + "</button>";
-      }).join("");
-      return '<div class="rubric-row"><div class="rubric-label"><div class="rl-name">' + esc(r.name) + '</div><div class="rl-desc">' + esc(r.desc) + '</div></div><div class="rate-group">' + buttons + "</div></div>";
-    }).join("");
-    return '<div class="rubric">' + rows + "</div>" + readinessHTML(b, scores);
-  }
-  function readinessHTML(b, scores) {
-    var vals = RUBRIC.map(function (r) { return scores[r.key] || 0; });
-    var rated = vals.filter(function (v) { return v > 0; }).length;
-    if (rated < RUBRIC.length) {
-      return '<div class="readiness"><span class="r-text">Rate all four to see your readiness on this build.</span></div>';
-    }
-    var total = vals.reduce(function (a, c) { return a + c; }, 0); // 4..12
-    var pct = Math.round((total / 12) * 100);
-    var msg = total >= 11 ? "Interview-ready on this one." : total >= 8 ? "Solid — tighten the weakest dimension." : "Rebuild it; target the lows.";
-    return '<div class="readiness"><span class="r-ring">' + pct + '%</span><span class="r-text">' + msg + "</span></div>";
-  }
-  function rate(id, dim, val) {
-    var s = state.builds[id] || {};
-    var wasDone = buildDone(id);
-    s[dim] = val;
-    state.builds[id] = s;
-    if (!wasDone && buildDone(id)) state.reps += 1; // count a build once, when fully self-scored
-    save();
-    renderBuilds();
-  }
-
-  // ---------- pattern deck (spaced repetition) ----------
-  var queue = [];
-  var current = null;
-  var flipped = false;
-
-  function cardState(id) { return state.patterns[id] || { box: 0, due: 0 }; }
-  function dueNow() {
-    var now = Date.now();
-    return PATTERNS.filter(function (p) { return cardState(p.id).due <= now; });
-  }
-  function nextDueLabel() {
-    var now = Date.now();
-    var future = PATTERNS.map(function (p) { return cardState(p.id).due; }).filter(function (d) { return d > now; });
-    if (!future.length) return "";
-    var soonest = Math.min.apply(null, future);
-    var hrs = Math.round((soonest - now) / 3600000);
-    if (hrs < 24) return "Next review in ~" + Math.max(1, hrs) + "h";
-    return "Next review in ~" + Math.round(hrs / 24) + "d";
-  }
-
-  function renderDeck() {
-    flipped = false;
-    if (!queue.length) queue = dueNow().map(function (p) { return p.id; });
-    updateDueBadge();
-    var stage = $("#deckStage");
-
-    if (!queue.length) {
-      current = null;
-      stage.innerHTML =
-        '<div class="deck-empty">' +
-          '<h3>All caught up.</h3>' +
-          '<p>' + (nextDueLabel() || "Nothing scheduled yet — start reviewing to build your schedule.") + '</p>' +
-          '<button class="btn btn-primary" id="reviewAll">Review the full deck anyway</button>' +
-        '</div>';
-      $("#reviewAll").addEventListener("click", function () {
-        queue = PATTERNS.map(function (p) { return p.id; });
-        renderDeck();
-      });
-      return;
-    }
-
-    current = PATTERNS.filter(function (p) { return p.id === queue[0]; })[0];
-    stage.innerHTML =
-      '<div class="flashcard" id="flashcard">' +
-        '<p class="fc-side-label">The tell</p>' +
-        '<p class="fc-tell">' + esc(current.tell) + '</p>' +
-        '<p class="fc-hint">Name the pattern in your head first, then check yourself.</p>' +
-        '<button class="btn btn-primary fc-reveal" id="revealCard">Show the answer</button>' +
-      '</div>' +
-      '<div class="deck-progress">' +
-        '<div class="deck-track"><div class="deck-fill" id="deckFill"></div></div>' +
-        '<div class="deck-legend"><span>' + queue.length + ' left this session</span><span id="masteredCount"></span></div>' +
-      '</div>';
-
-    $("#revealCard").addEventListener("click", flip);
-    $("#flashcard").addEventListener("click", flip);
-    updateDeckProgress();
-  }
-
-  function flip() {
-    if (flipped || !current) return;
-    flipped = true;
-    var fc = $("#flashcard");
-    fc.style.cursor = "default";
-    fc.innerHTML =
-      '<p class="fc-side-label">Pattern</p>' +
-      '<p class="fc-answer">' + esc(current.name) + '</p>' +
-      '<p class="fc-why">' + esc(current.why) + '</p>' +
-      '<p class="grade-prompt">How well did you recall it? Your grade sets when this card comes back.</p>' +
-      '<div class="grade-row">' +
-        gradeBtn("again", "Again", "back this round") +
-        gradeBtn("hard", "Hard", "in " + nextLabel(current.id, "hard")) +
-        gradeBtn("good", "Good", "in " + nextLabel(current.id, "good")) +
-        gradeBtn("easy", "Easy", "in " + nextLabel(current.id, "easy")) +
-      '</div>';
-    $$(".grade", fc).forEach(function (b) {
-      b.addEventListener("click", function () { grade(b.getAttribute("data-grade")); });
-    });
-  }
-  function gradeBtn(g, key, sub) {
-    return '<button class="grade" data-grade="' + g + '"><span class="g-key">' + key + '</span><span class="g-sub">' + sub + '</span></button>';
-  }
-  function humanDays(d) {
-    if (d < 1) return "now";
-    if (d < 7) return d + "d";
-    if (d < 30) return Math.round(d / 7) + "w";
-    return Math.round(d / 30) + "mo";
-  }
-  function nextLabel(id, g) {
-    var box = cardState(id).box;
+  /* ---------- spaced repetition (keyed cards) ---------- */
+  function cardState(k) { return state.cards[k] || { box: 0, due: 0 }; }
+  function nextLabel(k, g) {
+    var box = cardState(k).box;
     if (g === "again") return "now";
     if (g === "hard") box = Math.max(1, box);
     else if (g === "good") box = Math.min(INTERVALS.length - 1, box + 1);
     else if (g === "easy") box = Math.min(INTERVALS.length - 1, box + 2);
     return humanDays(INTERVALS[box]);
   }
-
-  function grade(g) {
-    if (!current) return;
-    var cs = cardState(current.id);
-    var box = cs.box;
+  function gradeCard(k, g) {
+    var box = cardState(k).box;
     if (g === "again") box = 0;
     else if (g === "hard") box = Math.max(1, box);
     else if (g === "good") box = Math.min(INTERVALS.length - 1, box + 1);
     else if (g === "easy") box = Math.min(INTERVALS.length - 1, box + 2);
-
-    var due = g === "again" ? Date.now() : Date.now() + INTERVALS[box] * DAY;
-    state.patterns[current.id] = { box: box, due: due };
-    state.reps += 1;
+    state.cards[k] = { box: box, due: g === "again" ? Date.now() : Date.now() + INTERVALS[box] * DAY };
     save();
-
-    var id = queue.shift();
-    if (g === "again") queue.push(id); // reappears later this session
-    flipped = false;
-    renderDeck();
   }
 
-  function updateDueBadge() {
-    var n = dueNow().length;
-    $("#dueBadge").textContent = n + (n === 1 ? " due" : " due");
-  }
-  function updateDeckProgress() {
-    var mastered = PATTERNS.filter(function (p) { return cardState(p.id).box >= 3; }).length;
-    var fill = $("#deckFill");
-    if (fill) fill.style.width = Math.round((mastered / PATTERNS.length) * 100) + "%";
-    var mc = $("#masteredCount");
-    if (mc) mc.textContent = mastered + " / " + PATTERNS.length + " maturing";
+  /* ---------- JS code runner (sandboxed worker) ---------- */
+  var JS_WORKER = [
+    'self.onmessage=function(e){',
+    ' var code=e.data.code,tests=e.data.tests,fnName=e.data.fnName;',
+    ' function deepEq(a,b){if(a===b)return true;if(typeof a!=="object"||typeof b!=="object"||a===null||b===null)return a===b;var ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(var i=0;i<ka.length;i++){if(!deepEq(a[ka[i]],b[ka[i]]))return false;}return true;}',
+    ' var fn;',
+    ' try{fn=(0,eval)(code+"\\n;(typeof "+fnName+" === \\"function\\" ? "+fnName+" : null)");}catch(err){self.postMessage({error:String(err&&err.message||err)});return;}',
+    ' if(typeof fn!=="function"){self.postMessage({error:"Define a function named "+fnName+" and try again."});return;}',
+    ' var results=[];',
+    ' for(var i=0;i<tests.length;i++){var t=tests[i],args;try{args=JSON.parse(JSON.stringify(t.args));}catch(_){args=t.args;}try{var out=fn.apply(null,args);results.push({pass:deepEq(out,t.expected),got:out,args:t.args,expected:t.expected});}catch(err){results.push({pass:false,error:String(err&&err.message||err),args:t.args,expected:t.expected});}}',
+    ' self.postMessage({results:results});',
+    '};'
+  ].join("\n");
+  function runProblem(prob, code, cb) {
+    var url, w, done = false, timer;
+    try {
+      url = URL.createObjectURL(new Blob([JS_WORKER], { type: "application/javascript" }));
+      w = new Worker(url);
+    } catch (e) { cb({ error: "Could not start the sandbox in this browser." }); return; }
+    function finish(data) { if (done) return; done = true; clearTimeout(timer); try { w.terminate(); URL.revokeObjectURL(url); } catch (e) {} cb(data); }
+    timer = setTimeout(function () { finish({ error: "Time limit exceeded - check for an infinite loop." }); }, 2500);
+    w.onmessage = function (e) { finish(e.data); };
+    w.onerror = function (er) { finish({ error: er.message || "Runtime error." }); };
+    w.postMessage({ code: code, tests: prob.tests, fnName: prob.fnName });
   }
 
-  // ---------- rag checklist ----------
-  function renderRag() {
-    var grid = $("#ragGrid");
-    grid.innerHTML = RAG_STAGES.map(function (s) {
-      var checked = state.rag[s.id] ? " checked" : "";
-      return '<div class="rag-stage">' +
-        '<span class="rs-step">' + esc(s.step) + '</span>' +
-        '<h4>' + esc(s.h) + '</h4>' +
-        '<p>' + esc(s.p) + '</p>' +
-        '<label class="rag-check"><input type="checkbox" data-rag="' + s.id + '"' + checked + '> Internalized</label>' +
-        '</div>';
+  /* ---------- progress / readiness ---------- */
+  function buildDone(id) { var s = state.builds[id]; return !!(s && RUBRIC.every(function (r) { return s[r.key]; })); }
+  function recallCards(m) {
+    if (m.recall === "DECK") return PATTERNS.map(function (p) { return { key: "pat:" + p.id, front: p.tell, back: p.name + " - " + p.why }; });
+    return (m.recall || []).map(function (c, i) { return { key: m.id + ":" + i, front: c.front, back: c.back }; });
+  }
+  function practiceDone(m) {
+    var p = m.practice;
+    if (p.type === "code") return p.refs.every(function (id) { return state.solved[id]; });
+    if (p.type === "decomp") return p.refs.every(function (i) { return state.decompDone.indexOf(i) !== -1; });
+    if (p.type === "build") return p.refs.every(function (id) { return buildDone(id); });
+    if (p.type === "framework") return p.refs.every(function (id) { return state.rag[id]; });
+    if (p.type === "deck") return PATTERNS.filter(function (x) { return cardState("pat:" + x.id).box >= 3; }).length >= 5;
+    return false;
+  }
+  function quizPassed(m) { return !!(state.quiz[m.id] && state.quiz[m.id].passed); }
+  function reinforceDone(m) {
+    var cards = recallCards(m);
+    if (!cards.length) return true;
+    if (m.recall === "DECK") return cards.filter(function (c) { return cardState(c.key).box >= 3; }).length >= 5;
+    return cards.every(function (c) { return cardState(c.key).box >= 1; });
+  }
+  function moduleSteps(m) {
+    return { learn: state.learned[m.id] ? 1 : 0, practice: practiceDone(m) ? 1 : 0, quiz: quizPassed(m) ? 1 : 0, reinforce: reinforceDone(m) ? 1 : 0 };
+  }
+  function modulePct(m) { var s = moduleSteps(m); return (s.learn + s.practice + s.quiz + s.reinforce) / 4; }
+  function trackModules(tid) { return MODULES.filter(function (m) { return m.track === tid; }); }
+  function trackPct(tid) { var ms = trackModules(tid); if (!ms.length) return 0; return ms.reduce(function (a, m) { return a + modulePct(m); }, 0) / ms.length; }
+  function overallPct() { return MODULES.reduce(function (a, m) { return a + modulePct(m); }, 0) / MODULES.length; }
+  function dueCount() { var n = 0; MODULES.forEach(function (m) { recallCards(m).forEach(function (c) { if (cardState(c.key).due <= Date.now() && cardState(c.key).box > 0) n++; }); }); return n; }
+
+  /* ---------- router ---------- */
+  var view = { name: "home", track: null, module: null, step: "learn" };
+  function go(v) { Object.keys(v).forEach(function (k) { view[k] = v[k]; }); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+  function render() {
+    var app = $("#app");
+    if (view.name === "home") app.innerHTML = homeHTML();
+    else if (view.name === "track") app.innerHTML = trackHTML(view.track);
+    else if (view.name === "module") app.innerHTML = moduleShellHTML(byId(MODULES, view.module));
+    wire();
+    if (view.name === "module") renderStep();
+    updateRing();
+  }
+
+  /* ---------- home ---------- */
+  function homeHTML() {
+    var due = dueCount();
+    var cards = TRACKS.map(function (t) {
+      var ms = trackModules(t.id), pct = Math.round(trackPct(t.id) * 100);
+      var ready = ms.filter(function (m) { return modulePct(m) >= 0.99; }).length;
+      return '<button class="track-card" data-track="' + t.id + '">' +
+        '<div class="tc-top"><span class="tc-short">' + esc(t.short) + '</span><span class="tc-pct">' + pct + '%</span></div>' +
+        '<h3>' + esc(t.name) + '</h3><p>' + esc(t.blurb) + '</p>' +
+        '<div class="tc-bar"><span style="width:' + pct + '%"></span></div>' +
+        '<div class="tc-foot">' + ready + ' / ' + ms.length + ' modules interview-ready</div>' +
+        '</button>';
     }).join("");
-    $$('input[data-rag]', grid).forEach(function (cb) {
-      cb.addEventListener("change", function () {
-        state.rag[cb.getAttribute("data-rag")] = cb.checked;
-        save();
+    return '<div class="wrap">' +
+      '<section class="hero"><p class="eyebrow">Interview prep for the practical engineer</p>' +
+      '<h1>Pick a track. Learn it, practice it, prove it.</h1>' +
+      '<p class="lede">Every module runs the same loop: <b>Learn</b> the concept, <b>Practice</b> it hands-on, <b>Quiz</b> yourself to prove it sticks, then <b>Reinforce</b> with spaced repetition. Work a track to the end and the readiness meter tells you, honestly, when you are ready to interview.</p>' +
+      (due > 0 ? '<div class="due-banner" data-review="1">' + due + ' review card' + (due === 1 ? '' : 's') + ' due across your modules. <span>Keep them warm &rarr;</span></div>' : '') +
+      '</section>' +
+      '<div class="loop-legend">' + ["Learn", "Practice", "Quiz", "Reinforce"].map(function (s, i) { return '<span class="ll"><b>' + (i + 1) + '</b>' + s + '</span>'; }).join('<span class="ll-arrow">&rarr;</span>') + '</div>' +
+      '<h2 class="section-title">Tracks</h2><div class="track-grid">' + cards + '</div>' +
+      '<p class="fineprint">Progress is saved on this device. Built from adversarially-verified interview research; loop details vary by company and change over time.</p>' +
+      '</div>';
+  }
+
+  /* ---------- track ---------- */
+  function trackHTML(tid) {
+    var t = byId(TRACKS, tid), ms = trackModules(tid);
+    var cards = ms.map(function (m) {
+      var pct = Math.round(modulePct(m) * 100), s = moduleSteps(m);
+      var chips = [["Learn", s.learn], ["Practice", s.practice], ["Quiz", s.quiz], ["Reinforce", s.reinforce]].map(function (x) {
+        return '<span class="mchip' + (x[1] ? " on" : "") + '">' + x[0] + '</span>';
+      }).join("");
+      return '<button class="module-card" data-module="' + m.id + '">' +
+        '<div class="mc-head"><div><span class="mc-kicker">' + esc(m.kicker) + ' &middot; ' + esc(m.est) + '</span><h3>' + esc(m.title) + '</h3></div><span class="mc-pct">' + pct + '%</span></div>' +
+        '<div class="mchips">' + chips + '</div>' +
+        '<div class="mc-bar"><span style="width:' + pct + '%"></span></div>' +
+        '</button>';
+    }).join("");
+    return '<div class="wrap">' +
+      breadcrumb([["Tracks", "home"]], t.name) +
+      '<div class="track-header"><span class="th-short">' + esc(t.short) + '</span><div><h1>' + esc(t.name) + '</h1><p>' + esc(t.blurb) + '</p></div></div>' +
+      '<div class="module-grid">' + cards + '</div></div>';
+  }
+
+  /* ---------- module shell ---------- */
+  var STEPS = [["learn", "Learn"], ["practice", "Practice"], ["quiz", "Quiz"], ["reinforce", "Reinforce"]];
+  function byIdStep(k) { for (var i = 0; i < STEPS.length; i++) if (STEPS[i][0] === k) return STEPS[i][1]; return k; }
+  function moduleShellHTML(m) {
+    var t = byId(TRACKS, m.track), s = moduleSteps(m);
+    var tabs = STEPS.map(function (st) {
+      var on = s[st[0]];
+      return '<button class="step-tab' + (view.step === st[0] ? " active" : "") + '" data-step="' + st[0] + '">' +
+        '<span class="st-dot' + (on ? " on" : "") + '"></span>' + st[1] + '</button>';
+    }).join("");
+    return '<div class="wrap">' +
+      breadcrumb([["Tracks", "home"], [t.name, "track:" + t.id]], m.title) +
+      '<div class="module-header"><div><span class="mh-kicker">' + esc(t.name) + ' &middot; ' + esc(m.kicker) + '</span><h1>' + esc(m.title) + '</h1></div>' +
+      '<div class="mh-ring" id="mhPct">' + Math.round(modulePct(m) * 100) + '%</div></div>' +
+      '<div class="step-tabs">' + tabs + '</div>' +
+      '<div class="step-body" id="stepBody"></div></div>';
+  }
+
+  function renderStep() {
+    var m = byId(MODULES, view.module), body = $("#stepBody");
+    if (view.step === "learn") renderLearn(m, body);
+    else if (view.step === "practice") renderPractice(m, body);
+    else if (view.step === "quiz") renderQuiz(m, body);
+    else if (view.step === "reinforce") renderReinforce(m, body);
+    updateModuleChrome(m);
+  }
+  function updateModuleChrome(m) {
+    var mh = $("#mhPct"); if (mh) mh.textContent = Math.round(modulePct(m) * 100) + "%";
+    $$(".step-tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-step") === view.step);
+      var done = moduleSteps(m)[t.getAttribute("data-step")];
+      var dot = t.querySelector(".st-dot"); if (dot) dot.classList.toggle("on", !!done);
+    });
+  }
+  function chrome() { var m = byId(MODULES, view.module); if (m) updateModuleChrome(m); }
+
+  function stepNav(m, cur) {
+    var order = ["learn", "practice", "quiz", "reinforce"], i = order.indexOf(cur), next = order[i + 1];
+    var label = next ? "Next: " + byIdStep(next) : "Back to " + byId(TRACKS, m.track).name;
+    return '<div class="step-nav"><button class="btn btn-primary" id="stepNext">' + (next ? esc(label) + " &rarr;" : "Finish module") + '</button></div>';
+  }
+  function wireStepNav(m, cur) {
+    var btn = $("#stepNext"); if (!btn) return;
+    btn.addEventListener("click", function () {
+      var order = ["learn", "practice", "quiz", "reinforce"], i = order.indexOf(cur), next = order[i + 1];
+      if (next) go({ step: next }); else go({ name: "track", track: m.track });
+    });
+  }
+
+  /* ---------- LEARN ---------- */
+  function renderLearn(m, body) {
+    var L = m.learn;
+    var points = (L.points || []).map(function (p) { return '<div class="learn-point"><h4>' + esc(p.h) + '</h4><p>' + esc(p.p) + '</p></div>'; }).join("");
+    var tmpl = L.template ? '<div class="learn-code"><div class="lc-bar">' + esc(L.template.lang) + ' &middot; template</div><pre><code>' + esc(L.template.code) + '</code></pre></div>' : "";
+    var ex = L.example ? '<div class="learn-example"><h4>' + esc(L.example.h) + '</h4><p>' + esc(L.example.p) + '</p></div>' : "";
+    var read = state.learned[m.id];
+    body.innerHTML = '<div class="learn"><p class="learn-intro">' + esc(L.intro) + '</p>' +
+      '<div class="learn-points">' + points + '</div>' + tmpl + ex +
+      '<div class="learn-actions"><button class="btn ' + (read ? "btn-ghost" : "btn-primary") + '" id="markLearned">' + (read ? "Marked as read ✓" : "Mark as read") + '</button>' +
+      '<button class="btn btn-ghost" id="toPractice">Go to Practice &rarr;</button></div></div>';
+    $("#markLearned").addEventListener("click", function () { state.learned[m.id] = true; save(); renderStep(); });
+    $("#toPractice").addEventListener("click", function () { go({ step: "practice" }); });
+  }
+
+  /* ---------- PRACTICE ---------- */
+  function renderPractice(m, body) {
+    var p = m.practice;
+    body.innerHTML = '<p class="step-note">' + esc(p.note || "") + '</p><div id="practiceArea"></div>' + stepNav(m, "practice");
+    var area = $("#practiceArea");
+    if (p.type === "code") {
+      p.refs.forEach(function (id) {
+        var wrap = document.createElement("div"); area.appendChild(wrap);
+        mountCoder(wrap, problem(id), { showSolution: true, onPass: function () { state.solved[id] = true; save(); chrome(); } });
+      });
+    } else if (p.type === "decomp") {
+      p.refs.forEach(function (i) { area.appendChild(decompCard(i)); });
+    } else if (p.type === "build") {
+      p.refs.forEach(function (id) { area.appendChild(buildCard(byId(BUILDS, id))); });
+    } else if (p.type === "framework") {
+      area.appendChild(frameworkGrid(p.refs));
+    } else if (p.type === "deck") {
+      var note = document.createElement("p"); note.className = "step-note"; note.innerHTML = "The recognition deck lives under <b>Reinforce</b> - that is the practice for this module."; area.appendChild(note);
+    }
+    wireStepNav(m, "practice");
+  }
+
+  function mountCoder(container, prob, opts) {
+    opts = opts || {};
+    var saved = state.code[prob.id] || prob.starter;
+    container.className = "coder";
+    container.innerHTML =
+      '<div class="coder-head"><span class="coder-title">' + esc(prob.title) + ' <span class="chip-diff">' + esc(prob.difficulty) + '</span> <span class="chip-pat">' + esc(prob.pattern) + '</span></span><span class="coder-lang">JavaScript</span></div>' +
+      '<p class="coder-prompt">' + esc(prob.prompt) + '</p>' +
+      '<textarea class="coder-editor" spellcheck="false">' + esc(saved) + '</textarea>' +
+      '<div class="coder-actions"><button class="btn btn-primary c-run">Run tests</button><button class="btn btn-ghost c-reset">Reset</button>' +
+      (opts.showSolution ? '<button class="btn btn-ghost c-sol">Show solution</button>' : '') +
+      '<span class="coder-status" aria-live="polite"></span></div><div class="coder-results"></div>';
+    var ta = container.querySelector(".coder-editor"), results = container.querySelector(".coder-results"), status = container.querySelector(".coder-status");
+    if (state.solved[prob.id]) { status.textContent = "Solved ✓"; status.className = "coder-status ok"; }
+    ta.addEventListener("keydown", function (e) { if (e.key === "Tab") { e.preventDefault(); var s = ta.selectionStart, en = ta.selectionEnd; ta.value = ta.value.slice(0, s) + "  " + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 2; } });
+    ta.addEventListener("input", function () { state.code[prob.id] = ta.value; save(); });
+    container.querySelector(".c-run").addEventListener("click", function () {
+      status.textContent = "Running..."; status.className = "coder-status"; results.innerHTML = "";
+      runProblem(prob, ta.value, function (data) {
+        var allPass = data.results && data.results.length && data.results.every(function (r) { return r.pass; });
+        renderResults(results, status, data);
+        if (allPass && opts.onPass) opts.onPass();
       });
     });
+    container.querySelector(".c-reset").addEventListener("click", function () { ta.value = prob.starter; state.code[prob.id] = prob.starter; save(); results.innerHTML = ""; status.textContent = ""; });
+    if (opts.showSolution) container.querySelector(".c-sol").addEventListener("click", function () { ta.value = prob.solution; state.code[prob.id] = prob.solution; save(); });
+  }
+  function renderResults(results, status, data) {
+    if (data.error) { status.textContent = "Error"; status.className = "coder-status err"; results.innerHTML = '<div class="res-err">' + esc(data.error) + '</div>'; return; }
+    var rs = data.results, passed = rs.filter(function (r) { return r.pass; }).length;
+    status.textContent = passed + " / " + rs.length + " passed";
+    status.className = "coder-status " + (passed === rs.length ? "ok" : "err");
+    results.innerHTML = (passed === rs.length ? '<div class="res-ok">All tests passed ✓</div>' : '') + rs.map(function (r) {
+      return '<div class="res-row ' + (r.pass ? "p" : "f") + '"><span class="res-i">' + (r.pass ? "✓" : "✗") + '</span>' +
+        '<code class="res-in">' + esc(jshort(r.args)) + '</code>' +
+        (r.error ? '<span class="res-detail">threw: ' + esc(r.error) + '</span>' :
+          '<span class="res-detail">got <code>' + esc(jshort(r.got)) + '</code>' + (r.pass ? '' : ' &middot; expected <code>' + esc(jshort(r.expected)) + '</code>') + '</span>') +
+        '</div>';
+    }).join("");
+  }
+  function jshort(v) { try { var s = JSON.stringify(v); return s === undefined ? "undefined" : s; } catch (e) { return String(v); } }
+
+  /* decomposition card (practice) */
+  function decompCard(i) {
+    var p = DECOMP[i], el = document.createElement("div"); el.className = "decomp-card";
+    var done = state.decompDone.indexOf(i) !== -1;
+    el.innerHTML =
+      '<div class="decomp-top"><span class="decomp-badge">' + esc(p.badge) + '</span><p class="decomp-prompt">' + esc(p.prompt) + '</p></div>' +
+      '<div class="decomp-body"><p class="decomp-instruct">Write every clarifying question you would ask before proposing anything. Then reveal the dimensions and check what you missed.</p>' +
+      '<textarea class="decomp-input" placeholder="Your clarifying questions..."></textarea>' +
+      '<div class="decomp-actions"><button class="btn btn-primary d-reveal">Reveal the dimensions</button><button class="btn btn-ghost d-mark">' + (done ? "Reviewed ✓" : "Mark reviewed") + '</button></div>' +
+      '<div class="reveal-panel"><p class="reveal-title">Dimensions a strong candidate surfaces</p><div class="dim-list">' +
+      p.dims.map(function (d) { return '<div class="dim"><h4>' + esc(d.h) + '</h4><ul>' + d.q.map(function (q) { return "<li>" + esc(q) + "</li>"; }).join("") + '</ul></div>'; }).join("") +
+      '</div></div></div>';
+    el.querySelector(".d-reveal").addEventListener("click", function () { el.querySelector(".reveal-panel").classList.add("show"); });
+    el.querySelector(".d-mark").addEventListener("click", function () { if (state.decompDone.indexOf(i) === -1) { state.decompDone.push(i); save(); this.textContent = "Reviewed ✓"; chrome(); } });
+    return el;
+  }
+  /* build card (practice) */
+  function buildCard(b) {
+    var el = document.createElement("div"); el.className = "build-card"; var scores = state.builds[b.id] || {};
+    function list(items) { return '<ul class="build-list">' + items.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>"; }
+    el.innerHTML =
+      '<div class="build-top"><span class="build-badge">' + esc(b.badge) + '</span><h3 class="build-title">' + esc(b.title) + '</h3><p class="build-brief">' + esc(b.brief) + '</p></div>' +
+      '<div class="build-body">' +
+      '<div class="build-step"><div class="step-h"><span class="step-n">1</span><h4>Clarify &amp; scope</h4></div>' + list(b.clarify) + '</div>' +
+      '<div class="build-step"><div class="step-h"><span class="step-n">2</span><h4>Build it in your editor</h4></div>' + list(b.build) + '</div>' +
+      '<div class="build-step"><div class="step-h"><span class="step-n">3</span><h4>Curveball</h4></div><button class="btn btn-ghost b-cb">Reveal the curveball</button><div class="reveal-box"><div class="curveball">' + esc(b.curveball) + '</div></div></div>' +
+      '<div class="build-step"><div class="step-h"><span class="step-n">4</span><h4>Explain it</h4></div>' + list(b.explain) + '</div>' +
+      '<div class="build-step"><div class="step-h"><span class="step-n">5</span><h4>Self-score</h4></div><div class="rubric">' +
+      RUBRIC.map(function (r) { return rubricRow(b.id, r, scores[r.key]); }).join("") + '</div><div class="readiness" data-rd="' + b.id + '"></div></div>' +
+      '<div class="build-step"><div class="step-h"><span class="step-n">6</span><h4>What good looks like</h4></div><button class="btn btn-ghost b-ref">Reveal the reference</button><div class="reveal-box"><div class="reference"><h5>Signals of a strong build</h5><ul>' + b.reference.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + '</ul></div></div></div>' +
+      '</div>';
+    el.querySelector(".b-cb").addEventListener("click", function () { this.nextElementSibling.classList.add("show"); this.style.display = "none"; });
+    el.querySelector(".b-ref").addEventListener("click", function () { this.nextElementSibling.classList.add("show"); this.style.display = "none"; });
+    $$(".rate", el).forEach(function (btn) { btn.addEventListener("click", function () { rateBuild(b.id, btn.getAttribute("data-dim"), parseInt(btn.getAttribute("data-val"), 10)); }); });
+    updateReadiness(el, b.id);
+    return el;
+  }
+  function rubricRow(bid, r, chosen) {
+    var labels = { 1: "Poor", 2: "OK", 3: "Strong" };
+    var btns = [1, 2, 3].map(function (v) { return '<button class="rate' + (chosen === v ? " sel" : "") + '" data-dim="' + r.key + '" data-val="' + v + '">' + labels[v] + "</button>"; }).join("");
+    return '<div class="rubric-row"><div class="rubric-label"><div class="rl-name">' + esc(r.name) + '</div><div class="rl-desc">' + esc(r.desc) + '</div></div><div class="rate-group">' + btns + '</div></div>';
+  }
+  function rateBuild(bid, dim, val) {
+    var s = state.builds[bid] || {}; s[dim] = val; state.builds[bid] = s; save();
+    var box = $('[data-rd="' + bid + '"]'); if (box) { var card = box.closest(".build-card"); $$(".rate", card).forEach(function (btn) { if (btn.getAttribute("data-dim") === dim) btn.classList.toggle("sel", parseInt(btn.getAttribute("data-val"), 10) === val); }); updateReadiness(card, bid); }
+    chrome();
+  }
+  function updateReadiness(cardEl, bid) {
+    var box = $('[data-rd="' + bid + '"]', cardEl); if (!box) return; var s = state.builds[bid] || {};
+    var vals = RUBRIC.map(function (r) { return s[r.key] || 0; }), rated = vals.filter(function (v) { return v > 0; }).length;
+    if (rated < RUBRIC.length) { box.innerHTML = '<span class="r-text">Rate all four to see your readiness on this build.</span>'; return; }
+    var total = vals.reduce(function (a, c) { return a + c; }, 0), pct = Math.round(total / 12 * 100);
+    var msg = total >= 11 ? "Interview-ready on this one." : total >= 8 ? "Solid. Tighten the weakest dimension." : "Rebuild it; target the lows.";
+    box.innerHTML = '<span class="r-ring">' + pct + '%</span><span class="r-text">' + msg + '</span>';
+  }
+  function frameworkGrid(refs) {
+    var el = document.createElement("div"); el.className = "rag-grid";
+    el.innerHTML = refs.map(function (id) {
+      var s = byId(RAG_STAGES, id); var checked = state.rag[id] ? " checked" : "";
+      return '<div class="rag-stage"><span class="rs-step">' + esc(s.step) + '</span><h4>' + esc(s.h) + '</h4><p>' + esc(s.p) + '</p><label class="rag-check"><input type="checkbox" data-rag="' + id + '"' + checked + '> Internalized</label></div>';
+    }).join("");
+    $$('input[data-rag]', el).forEach(function (cb) { cb.addEventListener("change", function () { state.rag[cb.getAttribute("data-rag")] = cb.checked; save(); chrome(); }); });
+    return el;
   }
 
-  // ---------- reset ----------
-  $("#resetProgress").addEventListener("click", resetAll);
-
-  // ---------- util ----------
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  /* ---------- QUIZ ---------- */
+  function renderQuiz(m, body) {
+    if (!state.quiz[m.id]) state.quiz[m.id] = { items: {}, passed: false };
+    body.innerHTML = '<p class="step-note">Prove it cold. Answer each question and pass the coding check. Get them all and the quiz is passed, updating your readiness. Retry as many times as you like.</p>' +
+      '<div class="quiz" id="quizArea"></div><div class="quiz-summary" id="quizSummary"></div>' + stepNav(m, "quiz");
+    var area = $("#quizArea");
+    m.quiz.forEach(function (item, idx) {
+      var wrap = document.createElement("div"); wrap.className = "quiz-item"; area.appendChild(wrap);
+      if (item.code) {
+        var head = document.createElement("p"); head.className = "quiz-q"; head.innerHTML = '<span class="qi-num">Q' + (idx + 1) + '</span> Coding check - make all tests pass:'; wrap.appendChild(head);
+        var cw = document.createElement("div"); wrap.appendChild(cw);
+        mountCoder(cw, problem(item.code), { showSolution: false, onPass: function () { markQuiz(m, idx); } });
+      } else {
+        wrap.appendChild(mcItem(m, item, idx));
+      }
     });
+    updateQuizSummary(m);
+    wireStepNav(m, "quiz");
+  }
+  function mcItem(m, item, idx) {
+    var wrap = document.createElement("div"); var answered = state.quiz[m.id].items[idx];
+    wrap.innerHTML = '<p class="quiz-q"><span class="qi-num">Q' + (idx + 1) + '</span> ' + esc(item.q) + '</p><div class="choices"></div><div class="explain"></div>';
+    var choices = wrap.querySelector(".choices"), explain = wrap.querySelector(".explain");
+    item.choices.forEach(function (c, ci) {
+      var b = document.createElement("button"); b.className = "choice"; b.textContent = c;
+      if (answered) { if (ci === item.answer) b.classList.add("correct"); b.disabled = true; }
+      b.addEventListener("click", function () {
+        if (state.quiz[m.id].items[idx]) return;
+        if (ci === item.answer) { b.classList.add("correct"); markQuiz(m, idx); $$(".choice", choices).forEach(function (x) { x.disabled = true; }); explain.className = "explain show ok"; explain.innerHTML = "✓ " + esc(item.explain); }
+        else { b.classList.add("wrong"); explain.className = "explain show"; explain.innerHTML = esc(item.explain) + ' <button class="retry">Try again</button>'; explain.querySelector(".retry").addEventListener("click", function () { b.classList.remove("wrong"); explain.className = "explain"; explain.innerHTML = ""; }); }
+      });
+      choices.appendChild(b);
+    });
+    if (answered) { explain.className = "explain show ok"; explain.innerHTML = "✓ " + esc(item.explain); }
+    return wrap;
+  }
+  function markQuiz(m, idx) {
+    state.quiz[m.id].items[idx] = true;
+    var all = m.quiz.every(function (_, i) { return state.quiz[m.id].items[i]; });
+    if (all) state.quiz[m.id].passed = true;
+    save(); updateQuizSummary(m); chrome();
+  }
+  function updateQuizSummary(m) {
+    var el = $("#quizSummary"); if (!el) return;
+    var done = m.quiz.filter(function (_, i) { return state.quiz[m.id].items[i]; }).length, total = m.quiz.length;
+    if (state.quiz[m.id].passed) el.innerHTML = '<div class="quiz-pass">Quiz passed, ' + total + ' / ' + total + '. This module counts toward your track readiness. ✓</div>';
+    else el.innerHTML = '<div class="quiz-track">' + done + ' / ' + total + ' locked in. Get them all to pass.</div>';
   }
 
-  // ---------- init ----------
-  renderProgress();
-  renderRag();
-  renderDecomp();
+  /* ---------- REINFORCE (spaced repetition) ---------- */
+  var deckQueue = [], deckCurrent = null, deckFlipped = false, deckCards = [];
+  function renderReinforce(m, body) {
+    deckCards = recallCards(m);
+    if (!deckCards.length) { body.innerHTML = '<p class="step-note">No spaced-repetition cards for this module.</p>' + stepNav(m, "reinforce"); wireStepNav(m, "reinforce"); return; }
+    body.innerHTML = '<p class="step-note">Grade your recall so the weak cards resurface sooner. This is what makes it stick.</p><div class="deck-stage" id="deckStage"></div>' + stepNav(m, "reinforce");
+    deckQueue = deckCards.filter(function (c) { return cardState(c.key).due <= Date.now(); }).map(function (c) { return c.key; });
+    if (!deckQueue.length) deckQueue = deckCards.map(function (c) { return c.key; });
+    deckFlipped = false; drawCard(m);
+    wireStepNav(m, "reinforce");
+  }
+  function byKey(k) { for (var i = 0; i < deckCards.length; i++) if (deckCards[i].key === k) return deckCards[i]; return null; }
+  function drawCard(m) {
+    var stage = $("#deckStage"); if (!stage) return;
+    if (!deckQueue.length) {
+      var mat = deckCards.filter(function (c) { return cardState(c.key).box >= (m.recall === "DECK" ? 3 : 1); }).length;
+      stage.innerHTML = '<div class="deck-empty"><h3>Session complete.</h3><p>' + mat + ' / ' + deckCards.length + ' cards are maturing. Come back later and the due ones resurface.</p><button class="btn btn-ghost" id="againDeck">Run the whole set again</button></div>';
+      $("#againDeck").addEventListener("click", function () { deckQueue = deckCards.map(function (c) { return c.key; }); deckFlipped = false; drawCard(m); });
+      return;
+    }
+    deckCurrent = byKey(deckQueue[0]); deckFlipped = false;
+    stage.innerHTML = '<div class="flashcard" id="flashcard"><p class="fc-side-label">Recall prompt</p><p class="fc-tell">' + esc(deckCurrent.front) + '</p><p class="fc-hint">Answer in your head, then check.</p><button class="btn btn-primary fc-reveal">Show the answer</button></div>' +
+      '<div class="deck-legend"><span>' + deckQueue.length + ' left this session</span><span>' + deckCards.length + ' in this module</span></div>';
+    $(".fc-reveal").addEventListener("click", function () { flipCard(m); });
+    $("#flashcard").addEventListener("click", function () { flipCard(m); });
+  }
+  function flipCard(m) {
+    if (deckFlipped || !deckCurrent) return; deckFlipped = true;
+    var fc = $("#flashcard"); if (!fc) return; fc.style.cursor = "default";
+    fc.innerHTML = '<p class="fc-side-label">Answer</p><p class="fc-answer">' + esc(deckCurrent.back) + '</p>' +
+      '<p class="grade-prompt">How well did you recall it? Your grade sets when it comes back.</p><div class="grade-row">' +
+      gbtn("again", "Again", "back this round") + gbtn("hard", "Hard", "in " + nextLabel(deckCurrent.key, "hard")) +
+      gbtn("good", "Good", "in " + nextLabel(deckCurrent.key, "good")) + gbtn("easy", "Easy", "in " + nextLabel(deckCurrent.key, "easy")) + '</div>';
+    $$(".grade", fc).forEach(function (b) { b.addEventListener("click", function () { doGrade(m, b.getAttribute("data-grade")); }); });
+  }
+  function gbtn(g, k, sub) { return '<button class="grade" data-grade="' + g + '"><span class="g-key">' + k + '</span><span class="g-sub">' + sub + '</span></button>'; }
+  function doGrade(m, g) {
+    if (!deckCurrent) return; gradeCard(deckCurrent.key, g);
+    var id = deckQueue.shift(); if (g === "again") deckQueue.push(id);
+    chrome(); drawCard(m);
+  }
+
+  /* ---------- shared wiring ---------- */
+  function breadcrumb(trail, current) {
+    return '<nav class="crumbs">' + trail.map(function (t) { return '<a data-nav="' + t[1] + '">' + esc(t[0]) + '</a><span>/</span>'; }).join("") + '<span class="cur">' + esc(current) + '</span></nav>';
+  }
+  function wire() {
+    $$("[data-track]").forEach(function (el) { el.addEventListener("click", function () { go({ name: "track", track: el.getAttribute("data-track") }); }); });
+    $$("[data-module]").forEach(function (el) { el.addEventListener("click", function () { go({ name: "module", module: el.getAttribute("data-module"), step: "learn" }); }); });
+    $$(".step-tab").forEach(function (el) { el.addEventListener("click", function () { go({ step: el.getAttribute("data-step") }); }); });
+    $$("[data-nav]").forEach(function (el) { el.addEventListener("click", function () { var v = el.getAttribute("data-nav"); if (v === "home") go({ name: "home" }); else if (v.indexOf("track:") === 0) go({ name: "track", track: v.slice(6) }); }); });
+    var db = $("[data-review]"); if (db) db.addEventListener("click", function () { var m = firstDueModule(); if (m) go({ name: "module", module: m.id, step: "reinforce" }); });
+  }
+  function firstDueModule() { for (var i = 0; i < MODULES.length; i++) { var cs = recallCards(MODULES[i]); for (var j = 0; j < cs.length; j++) if (cardState(cs[j].key).due <= Date.now() && cardState(cs[j].key).box > 0) return MODULES[i]; } return MODULES[0]; }
+
+  /* ---------- topbar ring ---------- */
+  function updateRing() {
+    var C = 2 * Math.PI * 16, fg = $("#ringFg"), pct = $("#ringPct");
+    var o = overallPct();
+    if (fg) { fg.style.strokeDasharray = C.toFixed(1); fg.style.strokeDashoffset = (C * (1 - o)).toFixed(1); }
+    if (pct) pct.textContent = Math.round(o * 100) + "%";
+  }
+
+  /* ---------- init ---------- */
+  $("#homeLink").addEventListener("click", function (e) { e.preventDefault(); go({ name: "home" }); });
+  $("#progressRing").addEventListener("click", function () { go({ name: "home" }); });
+  $("#resetAll").addEventListener("click", function () {
+    if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
+    state = { code: {}, solved: {}, quiz: {}, learned: {}, cards: {}, rag: {}, builds: {}, decompDone: [] };
+    save(); go({ name: "home" });
+  });
+  render();
 })();
