@@ -421,3 +421,8 @@ table.sql-table tbody tr:last-child td { border-bottom: none; }
 .lang-opt { border: none; background: transparent; font-family: var(--mono); font-size: 0.7rem; font-weight: 600; color: var(--sec); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
 .lang-opt.on { background: var(--ink); color: #fff; }
 .lang-opt:hover:not(.on) { color: var(--ink); }
+
+/* ---------- onboarding nudge ---------- */
+.start-banner { margin-top: 22px; background: var(--ink); color: #E7EAF1; border-radius: 12px; padding: 15px 20px; font-size: 0.95rem; cursor: pointer; line-height: 1.5; }
+.start-banner b { color: #fff; }
+.start-banner span { color: #F0872E; font-weight: 700; white-space: nowrap; }

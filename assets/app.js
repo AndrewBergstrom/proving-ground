@@ -71,50 +71,74 @@
     w.postMessage({ code: code, tests: prob.tests, fnName: prob.fnName });
   }
 
-  /* ---------- Python runner (Pyodide via WASM, lazy-loaded) ---------- */
-  var _pyPromise = null, _pyReady = false;
-  function loadPy() {
-    if (_pyPromise) return _pyPromise;
-    _pyPromise = new Promise(function (resolve, reject) {
-      var base = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
-      var s = document.createElement("script");
-      s.src = base + "pyodide.js";
-      s.onload = function () {
-        if (typeof window.loadPyodide !== "function") { reject(new Error("Python runtime did not initialize.")); return; }
-        window.loadPyodide({ indexURL: base }).then(function (py) { _pyReady = true; resolve(py); }, function (e) { reject(e); });
-      };
-      s.onerror = function () { reject(new Error("Could not load the Python runtime. Check your connection and retry.")); };
-      document.head.appendChild(s);
-    });
-    return _pyPromise;
-  }
+  /* ---------- Python runner (Pyodide in a Web Worker, timeout-guarded) ---------- */
+  var PY_BASE = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+  var PY_WORKER = [
+    'let pyReady=null;',
+    'self.onmessage=function(e){',
+    ' var m=e.data;',
+    ' if(m.type==="init"){',
+    '  if(!pyReady){ try{ importScripts(m.base+"pyodide.js"); }catch(err){ self.postMessage({type:"loaderror",error:String(err)}); return; } pyReady=self.loadPyodide({indexURL:m.base}); }',
+    '  pyReady.then(function(){ self.postMessage({type:"ready"}); }, function(err){ self.postMessage({type:"loaderror",error:String(err)}); });',
+    '  return;',
+    ' }',
+    ' if(m.type==="run"){',
+    '  pyReady.then(function(py){',
+    '   try{ py.globals.set("__TESTS_JSON", m.testsJson); py.runPython(m.program); self.postMessage({type:"result",id:m.id,result:py.globals.get("__result")}); }',
+    '   catch(err){ self.postMessage({type:"runerror",id:m.id,error:String(err&&err.message||err)}); }',
+    '  });',
+    ' }',
+    '};'
+  ].join("\n");
+  var _pyWorker = null, _pyReady = false, _pyReadyCbs = [], _pyReqId = 0, _pyReqs = {};
   function pyErrLine(e) { var m = String((e && e.message) || e || "Python error").trim().split("\n"); return m[m.length - 1] || "Python error"; }
+  function _resetPyWorker() { try { if (_pyWorker) _pyWorker.terminate(); } catch (e) {} _pyWorker = null; _pyReady = false; }
+  function _failPyReqs(msg) { Object.keys(_pyReqs).forEach(function (id) { var req = _pyReqs[id]; delete _pyReqs[id]; clearTimeout(req.timer); req.cb({ type: "runerror", error: msg }); }); }
+  function _newPyWorker() {
+    try { _pyWorker = new Worker(URL.createObjectURL(new Blob([PY_WORKER], { type: "application/javascript" }))); }
+    catch (e) { var cbsE = _pyReadyCbs; _pyReadyCbs = []; cbsE.forEach(function (c) { c.err("Could not start the Python worker."); }); return; }
+    _pyReady = false;
+    _pyWorker.onmessage = function (e) {
+      var m = e.data;
+      if (m.type === "ready") { _pyReady = true; var cbs = _pyReadyCbs; _pyReadyCbs = []; cbs.forEach(function (c) { c.ok(); }); }
+      else if (m.type === "loaderror") { var cbs2 = _pyReadyCbs; _pyReadyCbs = []; cbs2.forEach(function (c) { c.err("Could not load the Python runtime. Check your connection."); }); _resetPyWorker(); }
+      else if (m.type === "result" || m.type === "runerror") { var req = _pyReqs[m.id]; if (req) { delete _pyReqs[m.id]; clearTimeout(req.timer); req.cb(m); } }
+    };
+    _pyWorker.onerror = function () { _failPyReqs("Python worker crashed."); _resetPyWorker(); };
+    _pyWorker.postMessage({ type: "init", base: PY_BASE });
+  }
+  function ensurePy(onReady, onErr) {
+    if (_pyReady) { onReady(); return; }
+    _pyReadyCbs.push({ ok: onReady, err: onErr });
+    if (!_pyWorker) _newPyWorker();
+  }
   function runPythonProblem(prob, code, cb) {
-    loadPy().then(function (py) {
-      var out;
-      try {
-        py.globals.set("__TESTS_JSON", JSON.stringify(prob.tests));
-        var program =
-          "import json\n" + code + "\n" +
-          "__tests = json.loads(__TESTS_JSON)\n" +
-          "__out = []\n" +
-          "for __t in __tests:\n" +
-          "    try:\n" +
-          "        __r = " + prob.fnName + "(*__t['args'])\n" +
-          "        __out.append({'got': __r, 'ok': True})\n" +
-          "    except Exception as __e:\n" +
-          "        __out.append({'error': str(__e), 'ok': False})\n" +
-          "__result = json.dumps(__out)\n";
-        py.runPython(program);
-        out = JSON.parse(py.globals.get("__result"));
-      } catch (e) { cb({ error: pyErrLine(e) }); return; }
-      var results = out.map(function (o, i) {
-        var t = prob.tests[i];
-        if (!o.ok) return { pass: false, error: o.error, args: t.args, expected: t.expected };
-        return { pass: JSON.stringify(o.got) === JSON.stringify(t.expected), got: o.got, args: t.args, expected: t.expected };
-      });
-      cb({ results: results });
-    }, function (err) { cb({ error: err.message || "Python runtime failed to load." }); });
+    ensurePy(function () {
+      var id = ++_pyReqId;
+      var program =
+        "import json\n" + code + "\n" +
+        "__tests = json.loads(__TESTS_JSON)\n" +
+        "__out = []\n" +
+        "for __t in __tests:\n" +
+        "    try:\n" +
+        "        __r = " + prob.fnName + "(*__t['args'])\n" +
+        "        __out.append({'got': __r, 'ok': True})\n" +
+        "    except Exception as __e:\n" +
+        "        __out.append({'error': str(__e), 'ok': False})\n" +
+        "__result = json.dumps(__out)\n";
+      var timer = setTimeout(function () {
+        if (_pyReqs[id]) { delete _pyReqs[id]; _resetPyWorker(); _failPyReqs("Python was restarted after a timeout; run again."); cb({ error: "Time limit exceeded - check for an infinite loop." }); }
+      }, 8000);
+      _pyReqs[id] = { timer: timer, cb: function (m) {
+        if (m.type === "runerror") { cb({ error: pyErrLine({ message: m.error }) }); return; }
+        try {
+          var out = JSON.parse(m.result);
+          var results = out.map(function (o, i) { var t = prob.tests[i]; if (!o.ok) return { pass: false, error: o.error, args: t.args, expected: t.expected }; return { pass: JSON.stringify(o.got) === JSON.stringify(t.expected), got: o.got, args: t.args, expected: t.expected }; });
+          cb({ results: results });
+        } catch (e) { cb({ error: "Could not read Python output." }); }
+      } };
+      _pyWorker.postMessage({ type: "run", id: id, program: program, testsJson: JSON.stringify(prob.tests) });
+    }, function (err) { cb({ error: err || "Python runtime failed to load." }); });
   }
 
   /* ---------- SQL runner (SQLite via WASM, lazy-loaded) ---------- */
@@ -249,6 +273,7 @@
       (due > 0 ? '<div class="due-banner" data-review="1">' + due + ' review card' + (due === 1 ? '' : 's') + ' due across your modules. <span>Keep them warm &rarr;</span></div>' : '') +
       '</section>' +
       '<div class="loop-legend">' + ["Learn", "Practice", "Quiz", "Reinforce"].map(function (s, i) { return '<span class="ll"><b>' + (i + 1) + '</b>' + s + '</span>'; }).join('<span class="ll-arrow">&rarr;</span>') + '</div>' +
+      (overallPct() === 0 ? '<div class="start-banner" data-start="1">New here? Start with <b>Two Pointers</b> in the DSA track. It runs the full Learn, Practice, Quiz, Reinforce loop end to end, so you feel how the whole thing works. <span>Start there &rarr;</span></div>' : '') +
       '<h2 class="section-title">Tracks</h2><div class="track-grid">' + cards + '</div>' +
       '<p class="fineprint">Progress is saved on this device. Built from adversarially-verified interview research; loop details vary by company and change over time.</p>' +
       '</div>';
@@ -592,6 +617,7 @@
     $$(".step-tab").forEach(function (el) { el.addEventListener("click", function () { go({ step: el.getAttribute("data-step") }); }); });
     $$("[data-nav]").forEach(function (el) { el.addEventListener("click", function () { var v = el.getAttribute("data-nav"); if (v === "home") go({ name: "home" }); else if (v.indexOf("track:") === 0) go({ name: "track", track: v.slice(6) }); }); });
     var db = $("[data-review]"); if (db) db.addEventListener("click", function () { var m = firstDueModule(); if (m) go({ name: "module", module: m.id, step: "reinforce" }); });
+    var sb = $("[data-start]"); if (sb) sb.addEventListener("click", function () { go({ name: "module", module: "two-pointers", step: "learn" }); });
   }
   function firstDueModule() { for (var i = 0; i < MODULES.length; i++) { var cs = recallCards(MODULES[i]); for (var j = 0; j < cs.length; j++) if (cardState(cs[j].key).due <= Date.now() && cardState(cs[j].key).box > 0) return MODULES[i]; } return MODULES[0]; }
 
