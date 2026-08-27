@@ -21,7 +21,14 @@
     { id: "topo", tell: "Order tasks with prerequisites, or detect a cycle in dependencies.", name: "Topological Sort", why: "Repeatedly emit nodes with no remaining incoming edges; leftovers mean a cycle." },
     { id: "dp", tell: "Optimize a value under choices with overlapping subproblems (knapsack, coin change, edit distance).", name: "Dynamic Programming", why: "Define a state, a recurrence, and memoize so each subproblem is solved once." },
     { id: "union", tell: "Group elements, merge sets, or track connected components as edges arrive.", name: "Union-Find", why: "Union by rank with path compression answers connectivity in near-constant time." },
-    { id: "prefix", tell: "Many range-sum queries, or a subarray summing to exactly K.", name: "Prefix Sum", why: "Precompute cumulative sums so any range is one subtraction; hash prefixes for subarray targets." }
+    { id: "prefix", tell: "Many range-sum queries, or a subarray summing to exactly K.", name: "Prefix Sum", why: "Precompute cumulative sums so any range is one subtraction; hash prefixes for subarray targets." },
+    { id: "greedy", tell: "Reach a global optimum by making the locally best choice each step (activity selection, jump game, assign cookies).", name: "Greedy", why: "When a local optimum provably leads to the global one, sort by the right key and take greedily." },
+    { id: "binsearchans", tell: "Minimize the maximum, or maximize the minimum, where feasibility is monotonic in the answer.", name: "Binary Search on the Answer", why: "If 'can we do it within budget X?' is monotonic, binary-search X and test feasibility each step." },
+    { id: "bitmask", tell: "Toggle or count bits, find the one non-duplicated number, or enumerate subsets compactly.", name: "Bit Manipulation", why: "XOR cancels pairs; a bitmask stores a whole set in one integer for fast set operations." },
+    { id: "trie", tell: "Many prefix lookups, autocomplete, or dictionary word search.", name: "Trie (Prefix Tree)", why: "Shared prefixes become shared paths, so a lookup costs O(word length) regardless of dictionary size." },
+    { id: "quickselect", tell: "Find the k-th smallest or largest element without fully sorting.", name: "Quickselect", why: "Partition like quicksort but recurse into only one side, averaging O(n)." },
+    { id: "dutch", tell: "Sort an array of three distinct categories in a single pass (0/1/2, colors).", name: "Dutch National Flag", why: "Three pointers partition into low, mid, and high regions in one linear scan." },
+    { id: "treedfs", tell: "Compute a value for each node from its children: subtree sums, height, or diameter.", name: "Tree DFS (Postorder)", why: "Recurse to the children first, then combine their results at the parent in one traversal." }
   ];
 
   var DECOMP = [
@@ -71,6 +78,54 @@
         { h: "Edge cases", q: ["A pipeline is fully down vs degraded?", "Missing or delayed metrics?", "Alerting on top of the dashboard?"] },
         { h: "Success criteria", q: ["What decisions should this dashboard drive?", "Who is the primary user: on-call, lead, exec?"] },
         { h: "Ambiguities", q: ["Existing tooling (Grafana, Datadog) to use?", "Build vs configure?"] }
+      ]
+    },
+    {
+      badge: "FDE · systems integration",
+      prompt: "A customer wants their Salesforce data synced into our product every night so their reps see it in-app.",
+      dims: [
+        { h: "Inputs", q: ["Which objects and fields, and is it full or incremental?", "Their Salesforce edition and API limits?"] },
+        { h: "Constraints", q: ["Is nightly enough, or do they expect near-real-time?", "One-way or bidirectional sync?", "How do we stay under their API rate limits?"] },
+        { h: "Scale", q: ["Record counts today and growth?", "How many customers will run this same sync?"] },
+        { h: "Edge cases", q: ["Deleted records, field-mapping conflicts, schema changes on their side?", "A sync that fails halfway through?"] },
+        { h: "Success criteria", q: ["What does 'synced' mean: a freshness SLA, reconciled counts?", "Who notices first if it breaks?"] },
+        { h: "Ambiguities", q: ["Per-tenant OAuth and PII handling?", "Any existing ETL or warehouse to reuse?"] }
+      ]
+    },
+    {
+      badge: "Platform · eventing",
+      prompt: "Design a system that reliably delivers event notifications to customers' webhook endpoints.",
+      dims: [
+        { h: "Inputs", q: ["Which events, what payload shape?", "How many endpoints per customer?"] },
+        { h: "Constraints", q: ["At-least-once or exactly-once delivery?", "Is ordering guaranteed?", "Target delivery latency?"] },
+        { h: "Scale", q: ["Events per second and fan-out per event?", "Number of subscribers?"] },
+        { h: "Edge cases", q: ["Endpoint down or slow: retries and backoff?", "Poison events, duplicate delivery, thundering herd on recovery?"] },
+        { h: "Success criteria", q: ["Delivery success rate and dead-letter handling?", "What observability do customers get?"] },
+        { h: "Ambiguities", q: ["Payload signing and verification?", "Idempotency keys and replay support?"] }
+      ]
+    },
+    {
+      badge: "Applied-AI · agents",
+      prompt: "Build an agent that can take actions in a customer's system on their behalf, like updating records or sending messages.",
+      dims: [
+        { h: "Inputs", q: ["Which tools/actions, and what triggers a run?", "What context does the agent get?"] },
+        { h: "Constraints", q: ["Latency and cost per run?", "Which actions require human approval before executing?"] },
+        { h: "Scale", q: ["Runs per day and concurrency?", "How many tools in the toolset?"] },
+        { h: "Edge cases", q: ["A wrong or harmful action, a failed tool call?", "Ambiguous instructions or an infinite loop?"] },
+        { h: "Success criteria", q: ["Task success rate, and how do you measure it?", "What does a good eval look like?"] },
+        { h: "Ambiguities", q: ["Guardrails, approval gates, and permission scoping?", "Auditability of every action taken?"] }
+      ]
+    },
+    {
+      badge: "Applied-AI · internal tool",
+      prompt: "Our support team wants an internal tool that surfaces past tickets similar to the one they're working on.",
+      dims: [
+        { h: "Inputs", q: ["Which ticket fields, and how much history?", "Is similarity by text, metadata, or both?"] },
+        { h: "Constraints", q: ["Latency per search and freshness of new tickets?", "Privacy or on-prem requirements?"] },
+        { h: "Scale", q: ["Number of tickets and searches per day?", "Concurrent agents?"] },
+        { h: "Edge cases", q: ["No similar ticket exists; stale or duplicate tickets?", "PII inside ticket text?"] },
+        { h: "Success criteria", q: ["Do agents resolve faster? How is 'similar' judged?", "How would you measure it?"] },
+        { h: "Ambiguities", q: ["Build vs reuse existing search infra?", "Ranking signals and a feedback loop?"] }
       ]
     }
   ];
@@ -205,6 +260,67 @@
         "Small green steps; never a long red period.",
         "New behavior isolated behind a seam; interface kept stable.",
         "Adaptability is proven by the second change being cheap, not the first."
+      ]
+    },
+    {
+      id: "webhooks",
+      badge: "Platform · eventing",
+      title: "Webhook delivery service with retries",
+      brief: "Build a service that delivers event notifications to customer webhook URLs and keeps trying when they fail.",
+      clarify: [
+        "Delivery guarantee: at-least-once? Is ordering required?",
+        "Retry and backoff policy, and when do you give up (dead-letter)?",
+        "Do you sign payloads so customers can verify them?",
+        "How do customers dedupe if they receive an event twice?"
+      ],
+      build: [
+        "Accept events and enqueue them, decoupled from the producer.",
+        "POST to the endpoint; treat non-2xx and timeouts as failures.",
+        "Retry with exponential backoff and jitter, capped, then dead-letter.",
+        "Sign payloads and include an idempotency key.",
+        "Expose delivery status and basic observability."
+      ],
+      curveball: "A customer's endpoint is down for six hours, then comes back. Make sure their events aren't lost and don't replay in a thundering herd, and that one bad endpoint can't starve delivery to everyone else.",
+      explain: [
+        "State your delivery guarantee and how you achieve it.",
+        "Walk the backoff strategy and the dead-letter path.",
+        "Show how one slow customer is isolated from the rest."
+      ],
+      reference: [
+        "A durable queue so events survive a crash; ingestion decoupled from delivery.",
+        "Exponential backoff with jitter and a max-attempt cap, then dead-letter.",
+        "Per-customer isolation so one slow endpoint can't block others.",
+        "Signed payloads plus idempotency keys so customers can verify and dedupe."
+      ]
+    },
+    {
+      id: "evalharness",
+      badge: "Applied-AI · evaluation",
+      title: "Eval harness for an LLM feature",
+      brief: "An LLM feature 'works on the demo' but nobody knows if a change makes it better or worse. Build an eval harness that answers that.",
+      clarify: [
+        "What exactly is the task, and what does 'correct' mean for it?",
+        "Where does the eval set come from, and how representative is it?",
+        "Offline eval on a fixed set, online on live traffic, or both?"
+      ],
+      build: [
+        "Assemble a small, representative eval set with expected outputs or rubrics.",
+        "Choose metrics that match the task (exact match, rubric score, faithfulness).",
+        "Run the current system over the set and record scores reproducibly.",
+        "Make it a one-command run any change can be measured against.",
+        "Report per-case results so regressions are debuggable, not just an aggregate."
+      ],
+      curveball: "The task has no single right answer. Add an LLM-as-judge scorer, then show how you'd check the judge itself isn't biased or drifting.",
+      explain: [
+        "Explain how the eval set was built and why the metrics fit.",
+        "State the pass/fail bar that makes 'better or worse' objective.",
+        "Show a per-case view where a regression would surface."
+      ],
+      reference: [
+        "A version-controlled eval set and reproducible run beat vibes-based checks.",
+        "Metrics fit the task; per-case output makes regressions debuggable.",
+        "Validate an LLM-judge against human labels on a sample before trusting it.",
+        "A clear pass/fail bar so shipping decisions are objective."
       ]
     }
   ];
