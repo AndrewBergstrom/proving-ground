@@ -631,13 +631,15 @@
       '<div class="flashcard" id="flashcard">' +
         '<p class="fc-side-label">The tell</p>' +
         '<p class="fc-tell">' + esc(current.tell) + '</p>' +
-        '<p class="fc-hint">Recall the pattern, then tap to flip</p>' +
+        '<p class="fc-hint">Name the pattern in your head first, then check yourself.</p>' +
+        '<button class="btn btn-primary fc-reveal" id="revealCard">Show the answer</button>' +
       '</div>' +
       '<div class="deck-progress">' +
         '<div class="deck-track"><div class="deck-fill" id="deckFill"></div></div>' +
-        '<div class="deck-legend"><span>' + queue.length + ' in this session</span><span id="masteredCount"></span></div>' +
+        '<div class="deck-legend"><span>' + queue.length + ' left this session</span><span id="masteredCount"></span></div>' +
       '</div>';
 
+    $("#revealCard").addEventListener("click", flip);
     $("#flashcard").addEventListener("click", flip);
     updateDeckProgress();
   }
@@ -651,11 +653,12 @@
       '<p class="fc-side-label">Pattern</p>' +
       '<p class="fc-answer">' + esc(current.name) + '</p>' +
       '<p class="fc-why">' + esc(current.why) + '</p>' +
+      '<p class="grade-prompt">How well did you recall it? Your grade sets when this card comes back.</p>' +
       '<div class="grade-row">' +
-        gradeBtn("again", "Again", "missed") +
-        gradeBtn("hard", "Hard", "slow") +
-        gradeBtn("good", "Good", "got it") +
-        gradeBtn("easy", "Easy", "instant") +
+        gradeBtn("again", "Again", "back this round") +
+        gradeBtn("hard", "Hard", "in " + nextLabel(current.id, "hard")) +
+        gradeBtn("good", "Good", "in " + nextLabel(current.id, "good")) +
+        gradeBtn("easy", "Easy", "in " + nextLabel(current.id, "easy")) +
       '</div>';
     $$(".grade", fc).forEach(function (b) {
       b.addEventListener("click", function () { grade(b.getAttribute("data-grade")); });
@@ -663,6 +666,20 @@
   }
   function gradeBtn(g, key, sub) {
     return '<button class="grade" data-grade="' + g + '"><span class="g-key">' + key + '</span><span class="g-sub">' + sub + '</span></button>';
+  }
+  function humanDays(d) {
+    if (d < 1) return "now";
+    if (d < 7) return d + "d";
+    if (d < 30) return Math.round(d / 7) + "w";
+    return Math.round(d / 30) + "mo";
+  }
+  function nextLabel(id, g) {
+    var box = cardState(id).box;
+    if (g === "again") return "now";
+    if (g === "hard") box = Math.max(1, box);
+    else if (g === "good") box = Math.min(INTERVALS.length - 1, box + 1);
+    else if (g === "easy") box = Math.min(INTERVALS.length - 1, box + 2);
+    return humanDays(INTERVALS[box]);
   }
 
   function grade(g) {
