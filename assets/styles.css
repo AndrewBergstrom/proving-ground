@@ -162,6 +162,56 @@ table.cmp tbody tr:last-child td { border-bottom: none; }
 .deck-empty h3 { font-size: 1.3rem; margin: 0 0 8px; }
 .deck-empty p { color: var(--sec); margin: 0 0 20px; }
 
+/* ---------- build track ---------- */
+.build-stage { max-width: 780px; }
+.build-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.build-top { padding: 22px 24px; border-bottom: 1px solid var(--hair); }
+.build-badge { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ember-deep); background: var(--ember-tint); padding: 5px 10px; border-radius: 20px; }
+.build-title { font-size: 1.35rem; letter-spacing: -0.015em; margin: 12px 0 8px; }
+.build-brief { font-size: 1rem; color: var(--ink-soft); margin: 0; }
+.build-body { padding: 8px 24px 22px; }
+.build-step { padding: 20px 0; border-bottom: 1px solid var(--hair); }
+.build-step:last-child { border-bottom: none; }
+.step-h { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.step-n { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--ink); width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; }
+.step-h h4 { margin: 0; font-size: 1.05rem; letter-spacing: -0.01em; }
+.step-note { font-size: 0.86rem; color: var(--muted); margin: 0 0 12px; }
+.build-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.build-list li { display: flex; gap: 10px; font-size: 0.92rem; color: var(--ink-soft); line-height: 1.5; }
+.build-list li::before { content: "→"; color: var(--ember); font-weight: 700; flex-shrink: 0; }
+.reveal-box { display: none; margin-top: 12px; }
+.reveal-box.show { display: block; animation: fade .3s ease; }
+.reveal-btn { margin-top: 4px; }
+.curveball { background: var(--ember-tint); border: 1px solid #EFD3C0; border-radius: 12px; padding: 14px 16px; font-size: 0.95rem; color: var(--ink-soft); line-height: 1.5; }
+.reference { background: var(--good-tint); border: 1px solid #C9E3D4; border-radius: 12px; padding: 16px 18px; }
+.reference h5 { margin: 0 0 10px; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--good); }
+.reference ul { margin: 0; padding-left: 18px; }
+.reference li { font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 6px; line-height: 1.5; }
+
+/* rubric */
+.rubric { display: grid; gap: 12px; margin-top: 4px; }
+.rubric-row { display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; align-items: center; }
+.rubric-label { }
+.rubric-label .rl-name { font-weight: 650; font-size: 0.95rem; }
+.rubric-label .rl-desc { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+.rate-group { display: inline-flex; gap: 6px; }
+.rate { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 12px; font-size: 0.82rem; font-weight: 600; color: var(--sec); cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+.rate:hover { border-color: var(--ember); }
+.rate.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
+.readiness { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+.readiness .r-ring { font-family: var(--mono); font-weight: 700; font-size: 1.1rem; color: var(--ember-deep); font-variant-numeric: tabular-nums; }
+.readiness .r-text { font-size: 0.88rem; color: var(--sec); }
+.build-nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--surface-2); border-top: 1px solid var(--hair); }
+.build-counter { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.build-pills { display: flex; gap: 6px; }
+.bpill { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+.bpill.done { background: var(--good); }
+
+@media (max-width: 560px) {
+  .rubric-row { grid-template-columns: 1fr; }
+  .rate-group { justify-content: flex-start; flex-wrap: wrap; }
+}
+
 /* ---------- rag ---------- */
 .rag-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .rag-stage { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); position: relative; }

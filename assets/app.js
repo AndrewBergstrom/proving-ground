@@ -84,6 +84,138 @@
     { id: "eval", step: "Stage 6", h: "Evaluate", p: "Measure retrieval and generation quality separately so you can localize failures, and track them over time." }
   ];
 
+  var BUILDS = [
+    {
+      id: "csv",
+      badge: "FDE · data integration",
+      title: "Messy CSV → clean, queryable data",
+      brief: "A customer drops a CSV of their orders into a folder every night. Build a small tool that turns each file into clean, queryable data your team can trust.",
+      clarify: [
+        "Pick the target: a SQLite table, Parquet + DuckDB, or a small query API. Justify it.",
+        "Define the canonical schema and the natural key that identifies a unique order.",
+        "Decide failure behavior up front: quarantine bad rows with reasons, never crash or drop silently.",
+        "Decide idempotency: re-running the same file must not double-count."
+      ],
+      build: [
+        "Parse robustly: handle encoding, delimiter, and header-name variance.",
+        "Validate and coerce types; collect row-level errors instead of failing the whole file.",
+        "Deduplicate on the natural key so the run is idempotent.",
+        "Write to your chosen store and emit a summary: rows in, out, and rejected.",
+        "Make it a real CLI: input path, --dry-run, and --verbose flags."
+      ],
+      curveball: "Some nightly files now arrive gzipped, and occasionally a file is a partial re-send of yesterday. Handle both without reprocessing or duplicating data, and without changing the command your team already runs.",
+      explain: [
+        "Lead with the customer's need, not your architecture.",
+        "Run it live on a deliberately messy file and show the summary counts.",
+        "Justify your dedupe strategy and what happens to bad rows."
+      ],
+      reference: [
+        "Idempotent upserts keyed on a natural key, so re-runs are safe.",
+        "Bad rows quarantined to a rejects file with reasons, not dropped silently.",
+        "Config over hardcoding; the tool is re-runnable and observable.",
+        "A working end-to-end run, not a notebook that only works once."
+      ]
+    },
+    {
+      id: "ratelimit",
+      badge: "Platform · reliability",
+      title: "Rate limiter for a public API",
+      brief: "Add rate limiting to a public API so one noisy client can't degrade it for everyone.",
+      clarify: [
+        "What identifies a caller: API key, user, or IP? Per-endpoint or global?",
+        "What limit and window shape, and is state single-node or shared across nodes?",
+        "Fail open or fail closed if the limiter's store is unavailable?",
+        "Response contract on limit: 429 with Retry-After and X-RateLimit-* headers?"
+      ],
+      build: [
+        "Choose an algorithm (token bucket or sliding window) and justify it.",
+        "Get the boundary right: no double-count race under concurrent requests.",
+        "Return 429 with Retry-After and rate-limit headers.",
+        "Make limits configurable per route or plan.",
+        "Handle the store being down: degrade gracefully, don't return 500s."
+      ],
+      curveball: "You now run three API nodes behind a load balancer. Make the limit global across nodes, and reason about what happens when the shared store has 50ms latency or briefly goes down.",
+      explain: [
+        "Walk your algorithm choice and its burst behavior.",
+        "Explain the distributed-state tradeoff you made.",
+        "Show the failure mode: what a client sees when the store is unavailable."
+      ],
+      reference: [
+        "Token bucket tolerates bursts; sliding window is smoother but costlier.",
+        "Atomic increment (e.g. Redis INCR/EXPIRE or a Lua script) avoids races.",
+        "Graceful degradation when the store is down beats hard failures.",
+        "Standard headers and per-plan config; a demo that hits the limit and recovers."
+      ]
+    },
+    {
+      id: "rag",
+      badge: "Applied-AI · retrieval",
+      title: "Minimal RAG service with an 'I don't know'",
+      brief: "Build a minimal RAG service that answers questions over a folder of a customer's documents, and can tell you when it doesn't know.",
+      clarify: [
+        "Document types, volume, and how often they change?",
+        "Latency and cost budget per query?",
+        "Out-of-scope behavior: refuse, or answer from general knowledge?",
+        "How will you measure that it works: what does the eval look like?"
+      ],
+      build: [
+        "Ingest: chunk and embed into a vector store; justify chunk size and overlap.",
+        "Retrieve: embed the query, pull a tight top-k, optionally rerank.",
+        "Generate: a grounded, structured answer that cites its sources.",
+        "Guardrail: abstain when retrieval is weak; never fabricate.",
+        "Evaluate: a tiny eval set, scoring retrieval and generation separately."
+      ],
+      curveball: "The customer says answers are sometimes confidently wrong. Add a way to detect and cut low-grounding answers, and show a metric that proves it improved.",
+      explain: [
+        "Walk the six stages: scope, ingest, retrieve, generate, guardrails, evaluate.",
+        "Show one strong answer and one correct refusal.",
+        "State your eval numbers, retrieval and generation kept separate."
+      ],
+      reference: [
+        "Evaluate retrieval (Precision@k, NDCG) and generation (faithfulness) separately.",
+        "An abstain path with a confidence threshold beats a confident hallucination.",
+        "Cite sources so answers are auditable.",
+        "Cache embeddings and keep top-k tight to control cost and latency."
+      ]
+    },
+    {
+      id: "refactor",
+      badge: "Build quality · adaptability",
+      title: "Refactor under a new requirement, keep tests green",
+      brief: "You're handed a working-but-gnarly module with a passing test suite. A new requirement lands. Ship it without breaking the tests or the readability.",
+      clarify: [
+        "What exactly is the new requirement, and are the existing tests the contract?",
+        "Any performance or interface-stability constraints?",
+        "Is readability itself part of what's being judged? (Usually yes.)"
+      ],
+      build: [
+        "Run the tests first and understand current behavior before touching anything.",
+        "Refactor in small, safe steps (extract, rename), tests green between each.",
+        "Add the new behavior behind a clear seam; write tests for it.",
+        "Keep the public interface stable unless changing it is the point."
+      ],
+      curveball: "A second, slightly conflicting requirement arrives. Show how your refactor made it a small change instead of a rewrite.",
+      explain: [
+        "Narrate the refactor as a sequence of green steps, not one big leap.",
+        "Point to the seam that made the second change cheap.",
+        "Show the test suite still passing at the end."
+      ],
+      reference: [
+        "Characterization tests first to lock current behavior.",
+        "Small green steps; never a long red period.",
+        "New behavior isolated behind a seam; interface kept stable.",
+        "Adaptability is proven by the second change being cheap, not the first."
+      ]
+    }
+  ];
+
+  var RUBRIC = [
+    { key: "framing", name: "Customer framing", desc: "Did the design start from the customer's need?" },
+    { key: "quality", name: "Build quality", desc: "Clean code and a genuinely working result, not a demo." },
+    { key: "adapt", name: "Adaptability", desc: "Handled the curveball without breaking what worked." },
+    { key: "explain", name: "Explanation", desc: "Could clearly walk someone through the decisions." }
+  ];
+
   var INTERVALS = [0, 1, 3, 7, 16, 35]; // days per box
   var DAY = 86400000;
 
@@ -97,10 +229,11 @@
       s.patterns = s.patterns || {};
       s.decompDone = s.decompDone || [];
       s.rag = s.rag || {};
+      s.builds = s.builds || {};
       s.reps = s.reps || 0;
       return s;
     } catch (e) {
-      return { patterns: {}, decompDone: [], rag: {}, reps: 0 };
+      return { patterns: {}, decompDone: [], rag: {}, builds: {}, reps: 0 };
     }
   }
   function save() {
@@ -118,6 +251,7 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (name === "patterns") renderDeck();
     if (name === "decomp") renderDecomp();
+    if (name === "builds") renderBuilds();
   }
 
   $("#tabs").addEventListener("click", function (e) {
@@ -178,6 +312,94 @@
   function dimHTML(d) {
     return '<div class="dim"><h4>' + esc(d.h) + "</h4><ul>" +
       d.q.map(function (q) { return "<li>" + esc(q) + "</li>"; }).join("") + "</ul></div>";
+  }
+
+  // ---------- practical build track ----------
+  var buildIndex = 0;
+  function buildDone(id) {
+    var s = state.builds[id];
+    return !!(s && RUBRIC.every(function (r) { return s[r.key]; }));
+  }
+  function renderBuilds() {
+    var b = BUILDS[buildIndex];
+    var scores = state.builds[b.id] || {};
+    var stage = $("#buildStage");
+    stage.innerHTML =
+      '<div class="build-card">' +
+        '<div class="build-top">' +
+          '<span class="build-badge">' + esc(b.badge) + '</span>' +
+          '<h3 class="build-title">' + esc(b.title) + '</h3>' +
+          '<p class="build-brief">' + esc(b.brief) + '</p>' +
+        '</div>' +
+        '<div class="build-body">' +
+          stepBlock("1", "Clarify &amp; scope", "Lock these decisions before you write code.", listHTML(b.clarify)) +
+          stepBlock("2", "Build it in your editor", "What a solid build includes. Timebox it like a take-home.", listHTML(b.build)) +
+          stepBlock("3", "Handle the curveball", "Reveal only after your first version works.",
+            '<button class="btn btn-ghost reveal-btn" data-reveal="cb">Reveal the curveball</button>' +
+            '<div class="reveal-box" data-box="cb"><div class="curveball">' + esc(b.curveball) + '</div></div>') +
+          stepBlock("4", "Explain it", "Record a 2-minute walkthrough covering:", listHTML(b.explain)) +
+          stepBlock("5", "Self-score", "Rate yourself on the four dimensions interviewers actually use.", rubricHTML(b, scores)) +
+          stepBlock("6", "What good looks like", "Attempt everything above first, then check yourself.",
+            '<button class="btn btn-ghost reveal-btn" data-reveal="ref">Reveal the reference</button>' +
+            '<div class="reveal-box" data-box="ref"><div class="reference"><h5>Signals of a strong build</h5><ul>' +
+            b.reference.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + '</ul></div></div>') +
+        '</div>' +
+        '<div class="build-nav">' +
+          '<button class="btn btn-ghost" id="prevBuild">← Previous</button>' +
+          '<div class="build-pills">' + BUILDS.map(function (x) { return '<span class="bpill' + (buildDone(x.id) ? " done" : "") + '"></span>'; }).join("") + '</div>' +
+          '<button class="btn btn-ghost" id="nextBuild">Next →</button>' +
+        '</div>' +
+      '</div>';
+
+    $$('[data-reveal]', stage).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var box = $('[data-box="' + btn.getAttribute("data-reveal") + '"]', stage);
+        if (box) { box.classList.add("show"); btn.style.display = "none"; }
+      });
+    });
+    $$(".rate", stage).forEach(function (btn) {
+      btn.addEventListener("click", function () { rate(b.id, btn.getAttribute("data-dim"), parseInt(btn.getAttribute("data-val"), 10)); });
+    });
+    $("#prevBuild").addEventListener("click", function () { buildIndex = (buildIndex - 1 + BUILDS.length) % BUILDS.length; renderBuilds(); });
+    $("#nextBuild").addEventListener("click", function () { buildIndex = (buildIndex + 1) % BUILDS.length; renderBuilds(); });
+  }
+  function stepBlock(n, title, note, body) {
+    return '<div class="build-step"><div class="step-h"><span class="step-n">' + n + '</span><h4>' + title + '</h4></div>' +
+      (note ? '<p class="step-note">' + note + "</p>" : "") + body + "</div>";
+  }
+  function listHTML(items) {
+    return '<ul class="build-list">' + items.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>";
+  }
+  function rubricHTML(b, scores) {
+    var labels = { 1: "Poor", 2: "OK", 3: "Strong" };
+    var rows = RUBRIC.map(function (r) {
+      var chosen = scores[r.key];
+      var buttons = [1, 2, 3].map(function (v) {
+        return '<button class="rate' + (chosen === v ? " sel" : "") + '" data-dim="' + r.key + '" data-val="' + v + '">' + labels[v] + "</button>";
+      }).join("");
+      return '<div class="rubric-row"><div class="rubric-label"><div class="rl-name">' + esc(r.name) + '</div><div class="rl-desc">' + esc(r.desc) + '</div></div><div class="rate-group">' + buttons + "</div></div>";
+    }).join("");
+    return '<div class="rubric">' + rows + "</div>" + readinessHTML(b, scores);
+  }
+  function readinessHTML(b, scores) {
+    var vals = RUBRIC.map(function (r) { return scores[r.key] || 0; });
+    var rated = vals.filter(function (v) { return v > 0; }).length;
+    if (rated < RUBRIC.length) {
+      return '<div class="readiness"><span class="r-text">Rate all four to see your readiness on this build.</span></div>';
+    }
+    var total = vals.reduce(function (a, c) { return a + c; }, 0); // 4..12
+    var pct = Math.round((total / 12) * 100);
+    var msg = total >= 11 ? "Interview-ready on this one." : total >= 8 ? "Solid — tighten the weakest dimension." : "Rebuild it; target the lows.";
+    return '<div class="readiness"><span class="r-ring">' + pct + '%</span><span class="r-text">' + msg + "</span></div>";
+  }
+  function rate(id, dim, val) {
+    var s = state.builds[id] || {};
+    var wasDone = buildDone(id);
+    s[dim] = val;
+    state.builds[id] = s;
+    if (!wasDone && buildDone(id)) state.reps += 1; // count a build once, when fully self-scored
+    save();
+    renderBuilds();
   }
 
   // ---------- pattern deck (spaced repetition) ----------
@@ -315,7 +537,7 @@
   // ---------- reset ----------
   $("#resetProgress").addEventListener("click", function () {
     if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
-    state = { patterns: {}, decompDone: [], rag: {}, reps: 0 };
+    state = { patterns: {}, decompDone: [], rag: {}, builds: {}, reps: 0 };
     queue = [];
     save();
     renderRag();
