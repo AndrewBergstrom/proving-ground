@@ -24,7 +24,9 @@ var PROBLEMS = [
       { args: [[3, 3], 6], expected: [0, 1] },
       { args: [[1, 5, 3, 7], 12], expected: [1, 3] }
     ],
-    solution: "function twoSum(nums, target) {\n  const seen = {};\n  for (let i = 0; i < nums.length; i++) {\n    const need = target - nums[i];\n    if (need in seen) return [seen[need], i];\n    seen[nums[i]] = i;\n  }\n}"
+    solution: "function twoSum(nums, target) {\n  const seen = {};\n  for (let i = 0; i < nums.length; i++) {\n    const need = target - nums[i];\n    if (need in seen) return [seen[need], i];\n    seen[nums[i]] = i;\n  }\n}",
+    starterPy: "def twoSum(nums, target):\n    # return [i, j] with i < j\n    pass",
+    solutionPy: "def twoSum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        need = target - n\n        if need in seen:\n            return [seen[need], i]\n        seen[n] = i"
   },
   {
     id: "valid-palindrome", title: "Valid Palindrome", difficulty: "Easy", pattern: "Two Pointers",
@@ -37,7 +39,9 @@ var PROBLEMS = [
       { args: [" "], expected: true },
       { args: ["0P"], expected: false }
     ],
-    solution: "function isPalindrome(s) {\n  const t = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let i = 0, j = t.length - 1;\n  while (i < j) { if (t[i] !== t[j]) return false; i++; j--; }\n  return true;\n}"
+    solution: "function isPalindrome(s) {\n  const t = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let i = 0, j = t.length - 1;\n  while (i < j) { if (t[i] !== t[j]) return false; i++; j--; }\n  return true;\n}",
+    starterPy: "def isPalindrome(s):\n    # return True or False\n    pass",
+    solutionPy: "def isPalindrome(s):\n    t = [c.lower() for c in s if c.isalnum()]\n    return t == t[::-1]"
   },
   {
     id: "max-profit", title: "Best Time to Buy and Sell Stock", difficulty: "Easy", pattern: "Sliding Window / Greedy",
@@ -50,7 +54,9 @@ var PROBLEMS = [
       { args: [[1, 2]], expected: 1 },
       { args: [[2, 4, 1]], expected: 2 }
     ],
-    solution: "function maxProfit(prices) {\n  let min = Infinity, best = 0;\n  for (const p of prices) { min = Math.min(min, p); best = Math.max(best, p - min); }\n  return best;\n}"
+    solution: "function maxProfit(prices) {\n  let min = Infinity, best = 0;\n  for (const p of prices) { min = Math.min(min, p); best = Math.max(best, p - min); }\n  return best;\n}",
+    starterPy: "def maxProfit(prices):\n    # return the max profit\n    pass",
+    solutionPy: "def maxProfit(prices):\n    lo, best = float('inf'), 0\n    for p in prices:\n        lo = min(lo, p)\n        best = max(best, p - lo)\n    return best"
   },
   {
     id: "contains-duplicate", title: "Contains Duplicate", difficulty: "Easy", pattern: "Hashing",
@@ -63,7 +69,9 @@ var PROBLEMS = [
       { args: [[]], expected: false },
       { args: [[1, 1, 1, 1]], expected: true }
     ],
-    solution: "function containsDuplicate(nums) {\n  return new Set(nums).size !== nums.length;\n}"
+    solution: "function containsDuplicate(nums) {\n  return new Set(nums).size !== nums.length;\n}",
+    starterPy: "def containsDuplicate(nums):\n    # return True or False\n    pass",
+    solutionPy: "def containsDuplicate(nums):\n    return len(set(nums)) != len(nums)"
   },
   {
     id: "max-subarray", title: "Maximum Subarray", difficulty: "Easy", pattern: "Dynamic Programming",
@@ -76,7 +84,9 @@ var PROBLEMS = [
       { args: [[5, 4, -1, 7, 8]], expected: 23 },
       { args: [[-1, -2, -3]], expected: -1 }
     ],
-    solution: "function maxSubArray(nums) {\n  let cur = nums[0], best = nums[0];\n  for (let i = 1; i < nums.length; i++) { cur = Math.max(nums[i], cur + nums[i]); best = Math.max(best, cur); }\n  return best;\n}"
+    solution: "function maxSubArray(nums) {\n  let cur = nums[0], best = nums[0];\n  for (let i = 1; i < nums.length; i++) { cur = Math.max(nums[i], cur + nums[i]); best = Math.max(best, cur); }\n  return best;\n}",
+    starterPy: "def maxSubArray(nums):\n    # return the largest contiguous sum\n    pass",
+    solutionPy: "def maxSubArray(nums):\n    cur = best = nums[0]\n    for n in nums[1:]:\n        cur = max(n, cur + n)\n        best = max(best, cur)\n    return best"
   },
   {
     id: "binary-search", title: "Binary Search", difficulty: "Easy", pattern: "Modified Binary Search",
@@ -89,7 +99,9 @@ var PROBLEMS = [
       { args: [[5], 5], expected: 0 },
       { args: [[], 1], expected: -1 }
     ],
-    solution: "function search(nums, target) {\n  let lo = 0, hi = nums.length - 1;\n  while (lo <= hi) {\n    const mid = (lo + hi) >> 1;\n    if (nums[mid] === target) return mid;\n    if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n  }\n  return -1;\n}"
+    solution: "function search(nums, target) {\n  let lo = 0, hi = nums.length - 1;\n  while (lo <= hi) {\n    const mid = (lo + hi) >> 1;\n    if (nums[mid] === target) return mid;\n    if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n  }\n  return -1;\n}",
+    starterPy: "def search(nums, target):\n    # return the index or -1\n    pass",
+    solutionPy: "def search(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1"
   },
   {
     id: "valid-anagram", title: "Valid Anagram", difficulty: "Easy", pattern: "Hashing",
@@ -102,7 +114,9 @@ var PROBLEMS = [
       { args: ["a", "ab"], expected: false },
       { args: ["ab", "ba"], expected: true }
     ],
-    solution: "function isAnagram(s, t) {\n  if (s.length !== t.length) return false;\n  const c = {};\n  for (const ch of s) c[ch] = (c[ch] || 0) + 1;\n  for (const ch of t) { if (!c[ch]) return false; c[ch]--; }\n  return true;\n}"
+    solution: "function isAnagram(s, t) {\n  if (s.length !== t.length) return false;\n  const c = {};\n  for (const ch of s) c[ch] = (c[ch] || 0) + 1;\n  for (const ch of t) { if (!c[ch]) return false; c[ch]--; }\n  return true;\n}",
+    starterPy: "def isAnagram(s, t):\n    # return True or False\n    pass",
+    solutionPy: "def isAnagram(s, t):\n    from collections import Counter\n    return Counter(s) == Counter(t)"
   }
 ];
 

@@ -20,6 +20,7 @@
     s.code = s.code || {}; s.solved = s.solved || {}; s.quiz = s.quiz || {};
     s.learned = s.learned || {}; s.cards = s.cards || {}; s.rag = s.rag || {};
     s.builds = s.builds || {}; s.decompDone = s.decompDone || [];
+    s.lang = s.lang || "js";
     return s;
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} updateRing(); }
@@ -68,6 +69,52 @@
     w.onmessage = function (e) { finish(e.data); };
     w.onerror = function (er) { finish({ error: er.message || "Runtime error." }); };
     w.postMessage({ code: code, tests: prob.tests, fnName: prob.fnName });
+  }
+
+  /* ---------- Python runner (Pyodide via WASM, lazy-loaded) ---------- */
+  var _pyPromise = null, _pyReady = false;
+  function loadPy() {
+    if (_pyPromise) return _pyPromise;
+    _pyPromise = new Promise(function (resolve, reject) {
+      var base = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+      var s = document.createElement("script");
+      s.src = base + "pyodide.js";
+      s.onload = function () {
+        if (typeof window.loadPyodide !== "function") { reject(new Error("Python runtime did not initialize.")); return; }
+        window.loadPyodide({ indexURL: base }).then(function (py) { _pyReady = true; resolve(py); }, function (e) { reject(e); });
+      };
+      s.onerror = function () { reject(new Error("Could not load the Python runtime. Check your connection and retry.")); };
+      document.head.appendChild(s);
+    });
+    return _pyPromise;
+  }
+  function pyErrLine(e) { var m = String((e && e.message) || e || "Python error").trim().split("\n"); return m[m.length - 1] || "Python error"; }
+  function runPythonProblem(prob, code, cb) {
+    loadPy().then(function (py) {
+      var out;
+      try {
+        py.globals.set("__TESTS_JSON", JSON.stringify(prob.tests));
+        var program =
+          "import json\n" + code + "\n" +
+          "__tests = json.loads(__TESTS_JSON)\n" +
+          "__out = []\n" +
+          "for __t in __tests:\n" +
+          "    try:\n" +
+          "        __r = " + prob.fnName + "(*__t['args'])\n" +
+          "        __out.append({'got': __r, 'ok': True})\n" +
+          "    except Exception as __e:\n" +
+          "        __out.append({'error': str(__e), 'ok': False})\n" +
+          "__result = json.dumps(__out)\n";
+        py.runPython(program);
+        out = JSON.parse(py.globals.get("__result"));
+      } catch (e) { cb({ error: pyErrLine(e) }); return; }
+      var results = out.map(function (o, i) {
+        var t = prob.tests[i];
+        if (!o.ok) return { pass: false, error: o.error, args: t.args, expected: t.expected };
+        return { pass: JSON.stringify(o.got) === JSON.stringify(t.expected), got: o.got, args: t.args, expected: t.expected };
+      });
+      cb({ results: results });
+    }, function (err) { cb({ error: err.message || "Python runtime failed to load." }); });
   }
 
   /* ---------- SQL runner (SQLite via WASM, lazy-loaded) ---------- */
@@ -320,10 +367,15 @@
 
   function mountCoder(container, prob, opts) {
     opts = opts || {};
-    var saved = state.code[prob.id] || prob.starter;
+    var lang = state.lang === "py" ? "py" : "js";
+    var starter = lang === "py" ? prob.starterPy : prob.starter;
+    var solution = lang === "py" ? prob.solutionPy : prob.solution;
+    var codeKey = lang + ":" + prob.id;
+    var saved = state.code[codeKey] || starter;
     container.className = "coder";
     container.innerHTML =
-      '<div class="coder-head"><span class="coder-title">' + esc(prob.title) + ' <span class="chip-diff">' + esc(prob.difficulty) + '</span> <span class="chip-pat">' + esc(prob.pattern) + '</span></span><span class="coder-lang">JavaScript</span></div>' +
+      '<div class="coder-head"><span class="coder-title">' + esc(prob.title) + ' <span class="chip-diff">' + esc(prob.difficulty) + '</span> <span class="chip-pat">' + esc(prob.pattern) + '</span></span>' +
+      '<span class="lang-toggle"><button class="lang-opt' + (lang === "js" ? " on" : "") + '" data-lang="js">JavaScript</button><button class="lang-opt' + (lang === "py" ? " on" : "") + '" data-lang="py">Python</button></span></div>' +
       '<p class="coder-prompt">' + esc(prob.prompt) + '</p>' +
       '<textarea class="coder-editor" spellcheck="false">' + esc(saved) + '</textarea>' +
       '<div class="coder-actions"><button class="btn btn-primary c-run">Run tests</button><button class="btn btn-ghost c-reset">Reset</button>' +
@@ -331,18 +383,29 @@
       '<span class="coder-status" aria-live="polite"></span></div><div class="coder-results"></div>';
     var ta = container.querySelector(".coder-editor"), results = container.querySelector(".coder-results"), status = container.querySelector(".coder-status");
     if (state.solved[prob.id]) { status.textContent = "Solved ✓"; status.className = "coder-status ok"; }
+    $$(".lang-opt", container).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var nl = btn.getAttribute("data-lang");
+        if (nl === lang) return;
+        state.code[codeKey] = ta.value; state.lang = nl; save();
+        mountCoder(container, prob, opts);
+      });
+    });
     ta.addEventListener("keydown", function (e) { if (e.key === "Tab") { e.preventDefault(); var s = ta.selectionStart, en = ta.selectionEnd; ta.value = ta.value.slice(0, s) + "  " + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 2; } });
-    ta.addEventListener("input", function () { state.code[prob.id] = ta.value; save(); });
+    ta.addEventListener("input", function () { state.code[codeKey] = ta.value; save(); });
     container.querySelector(".c-run").addEventListener("click", function () {
-      status.textContent = "Running..."; status.className = "coder-status"; results.innerHTML = "";
-      runProblem(prob, ta.value, function (data) {
+      results.innerHTML = "";
+      status.textContent = (lang === "py" && !_pyReady) ? "Loading Python (first run, a few seconds)..." : "Running...";
+      status.className = "coder-status";
+      var runner = lang === "py" ? runPythonProblem : runProblem;
+      runner(prob, ta.value, function (data) {
         var allPass = data.results && data.results.length && data.results.every(function (r) { return r.pass; });
         renderResults(results, status, data);
         if (allPass && opts.onPass) opts.onPass();
       });
     });
-    container.querySelector(".c-reset").addEventListener("click", function () { ta.value = prob.starter; state.code[prob.id] = prob.starter; save(); results.innerHTML = ""; status.textContent = ""; });
-    if (opts.showSolution) container.querySelector(".c-sol").addEventListener("click", function () { ta.value = prob.solution; state.code[prob.id] = prob.solution; save(); });
+    container.querySelector(".c-reset").addEventListener("click", function () { ta.value = starter; state.code[codeKey] = starter; save(); results.innerHTML = ""; status.textContent = ""; });
+    if (opts.showSolution) container.querySelector(".c-sol").addEventListener("click", function () { ta.value = solution; state.code[codeKey] = solution; save(); });
   }
   function renderResults(results, status, data) {
     if (data.error) { status.textContent = "Error"; status.className = "coder-status err"; results.innerHTML = '<div class="res-err">' + esc(data.error) + '</div>'; return; }
@@ -545,7 +608,7 @@
   $("#progressRing").addEventListener("click", function () { go({ name: "home" }); });
   $("#resetAll").addEventListener("click", function () {
     if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
-    state = { code: {}, solved: {}, quiz: {}, learned: {}, cards: {}, rag: {}, builds: {}, decompDone: [] };
+    state = { code: {}, solved: {}, quiz: {}, learned: {}, cards: {}, rag: {}, builds: {}, decompDone: [], lang: "js" };
     save(); go({ name: "home" });
   });
   render();
