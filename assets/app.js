@@ -708,18 +708,40 @@
     if (_user) { btn.textContent = "Sign out"; btn.title = _user.email || "Signed in"; }
     else { btn.textContent = "Sign in"; btn.title = "Sign in to sync progress across devices"; }
   }
+  var OAUTH_META = {
+    github: { label: "GitHub", icon: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>' },
+    google: { label: "Google", icon: '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.3 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.9 6.1C12.2 13.7 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7C43.7 38 46.5 31.9 46.5 24.5z"/><path fill="#FBBC05" d="M10.4 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.4 0-11.8-4.2-13.6-9.9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>' },
+    apple: { label: "Apple", icon: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.8zM14.2 5.9c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>' },
+    facebook: { label: "Facebook", icon: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#1877F2" d="M24 12c0-6.6-5.4-12-12-12S0 5.4 0 12c0 6 4.4 11 10.1 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.6 4.5-4.6 1.3 0 2.6.2 2.6.2v2.9h-1.5c-1.5 0-1.9.9-1.9 1.8V12h3.3l-.5 3.5h-2.8v8.4C19.6 23 24 18 24 12z"/></svg>' }
+  };
+  function oauthProviders() { var l = (window.PG_CONFIG && window.PG_CONFIG.OAUTH_PROVIDERS) || []; return l.filter(function (p) { return OAUTH_META[p]; }); }
   function openAuthModal() {
+    var provs = oauthProviders();
+    var oauthHTML = provs.length ? '<div class="oauth-list">' + provs.map(function (p) {
+      return '<button class="oauth-btn" data-provider="' + p + '">' + OAUTH_META[p].icon + '<span>Continue with ' + OAUTH_META[p].label + '</span></button>';
+    }).join("") + '</div><div class="modal-divider"><span>or with email</span></div>' : "";
     var ov = document.createElement("div"); ov.className = "modal-ov";
-    ov.innerHTML = '<div class="modal"><h3>Sign in to sync</h3><p>Get a one-time sign-in link by email. Your completed modules and review schedule will follow you across devices.</p>' +
+    ov.innerHTML = '<div class="modal"><h3>Sign in</h3><p>Sync your completed modules and review schedule across every device.</p>' +
+      oauthHTML +
       '<input class="modal-input" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">' +
       '<div class="modal-actions"><button class="btn btn-primary" id="authSend">Send sign-in link</button><button class="btn btn-ghost" id="authCancel">Cancel</button></div>' +
       '<p class="modal-status" id="authStatus"></p></div>';
     document.body.appendChild(ov);
+    var st = $("#authStatus", ov);
     function close() { ov.remove(); }
     ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
     $("#authCancel", ov).addEventListener("click", close);
+    $$(".oauth-btn", ov).forEach(function (b) {
+      b.addEventListener("click", function () {
+        var provider = b.getAttribute("data-provider");
+        st.textContent = "Redirecting to " + OAUTH_META[provider].label + "...";
+        SB.auth.signInWithOAuth({ provider: provider, options: { redirectTo: window.location.origin } }).then(function (res) {
+          if (res && res.error) st.textContent = res.error.message || (OAUTH_META[provider].label + " is not enabled yet.");
+        }, function () { st.textContent = "Could not start " + OAUTH_META[provider].label + " sign-in."; });
+      });
+    });
     $("#authSend", ov).addEventListener("click", function () {
-      var email = $("#authEmail", ov).value.trim(), st = $("#authStatus", ov);
+      var email = $("#authEmail", ov).value.trim();
       if (!email) { st.textContent = "Enter your email address."; return; }
       st.textContent = "Sending...";
       SB.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.origin } }).then(function (res) {

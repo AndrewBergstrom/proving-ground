@@ -10,5 +10,11 @@
  */
 window.PG_CONFIG = {
   SUPABASE_URL: "https://wohlbejcuflznilmbtgx.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_VAf7cj0iQBuaqa0uirA2eg_vRwNLZ5A"
+  SUPABASE_ANON_KEY: "sb_publishable_VAf7cj0iQBuaqa0uirA2eg_vRwNLZ5A",
+
+  // Social sign-in buttons to show. List ONLY providers you have actually
+  // enabled in Supabase (Authentication -> Providers) and created an OAuth
+  // app for. A button for a provider that isn't enabled will error on click.
+  // Supported: "github", "google", "apple", "facebook". Email link always works.
+  OAUTH_PROVIDERS: ["github", "google"]
 };
