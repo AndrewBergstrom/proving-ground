@@ -691,8 +691,13 @@
   function authConfigured() { var c = window.PG_CONFIG || {}; return !!(c.SUPABASE_URL && c.SUPABASE_ANON_KEY && window.supabase && typeof window.supabase.createClient === "function"); }
   function initAuth() {
     if (!authConfigured()) return; // local-only mode
-    try { SB = window.supabase.createClient(window.PG_CONFIG.SUPABASE_URL, window.PG_CONFIG.SUPABASE_ANON_KEY); }
-    catch (e) { SB = null; return; }
+    try {
+      SB = window.supabase.createClient(window.PG_CONFIG.SUPABASE_URL, window.PG_CONFIG.SUPABASE_ANON_KEY, {
+        // PKCE: the OAuth return carries only a single-use code (useless without the
+        // verifier kept in the browser), so access/refresh tokens never appear in the URL.
+        auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+      });
+    } catch (e) { SB = null; return; }
     var btn = $("#authBtn"); if (btn) btn.hidden = false;
     SB.auth.onAuthStateChange(function (_e, session) { handleSession(session); });
     // Initial session: only ever sign IN here. Never clobber an established session with a null result
