@@ -150,6 +150,40 @@ whole feature off (the app behaves exactly as before).
 
 ---
 
+## First-boot troubleshooting
+
+Two things bit the first live setup; both are one-time and covered here.
+
+**`judge0.conf` must be readable by the container (mode 644, not 600).** The
+Judge0 container runs as a non-root user. If `judge0.conf` is `chmod 600`
+(root-only), the container silently cannot read it, falls back to `localhost`
+for Postgres, and the server crash-loops with
+`PG::ConnectionBad: could not connect to server: Connection refused`. Fix:
+
+```bash
+chmod 644 /opt/judge/judge0.conf
+docker compose restart server workers
+```
+
+(Keep `.env` at 600 - only the host root reads it. Only `judge0.conf` needs to
+be container-readable.)
+
+**First boot may skip migrate/seed, so `/languages` is empty and Caddy returns
+502.** The Postgres image pre-creates the `judge0` database, so Judge0's
+`db:create` errors with "already exists" and the entrypoint can skip the
+migrate + seed. Symptom: server boots Puma but `/languages` is empty. Fix -
+drop the empty DB and let the entrypoint set it up cleanly:
+
+```bash
+cd /opt/judge
+docker compose exec -T db psql -U judge0 -d postgres -c "DROP DATABASE IF EXISTS judge0 WITH (FORCE);"
+docker compose up -d db redis
+sleep 15
+docker compose restart server workers
+# watch it create + migrate + seed, then:
+curl -s https://<your-judge-domain>/languages | head
+```
+
 ## Maintenance
 
 - **Update Judge0/OS:** `docker compose pull && docker compose up -d`, and let
@@ -157,5 +191,6 @@ whole feature off (the app behaves exactly as before).
   fixes and bump the pinned tag in `docker-compose.yml`.
 - **Logs / abuse:** `docker compose logs caddy` shows access + rate-limit hits.
   Tighten `RATE_EVENTS` / `RATE_WINDOW` in `.env` if you see abuse.
-- **Cost:** one CX22 is about EUR 4-5/mo. Power it off when not needed; the app
-  degrades gracefully (compiled languages just disappear from the selector).
+- **Cost:** one CX22 is about EUR 4-5/mo (a CPX21 is a bit more). Power it off
+  when not needed; the app degrades gracefully (compiled languages just
+  disappear from the selector).
