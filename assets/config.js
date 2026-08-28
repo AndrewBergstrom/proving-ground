@@ -9,6 +9,6 @@
  * saved per-device in the browser (exactly the pre-sync behavior).
  */
 window.PG_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: ""
+  SUPABASE_URL: "https://wohlbejcuflznilmbtgx.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_VAf7cj0iQBuaqa0uirA2eg_vRwNLZ5A"
 };
