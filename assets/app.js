@@ -695,7 +695,18 @@
     catch (e) { SB = null; return; }
     var btn = $("#authBtn"); if (btn) btn.hidden = false;
     SB.auth.onAuthStateChange(function (_e, session) { handleSession(session); });
-    SB.auth.getSession().then(function (res) { handleSession(res && res.data ? res.data.session : null); }, function () {});
+    // Initial session: only ever sign IN here. Never clobber an established session with a null result
+    // (on an OAuth return, getSession can resolve null before the URL token is processed).
+    SB.auth.getSession().then(function (res) { var s = res && res.data ? res.data.session : null; if (s) handleSession(s); }, function () {});
+    // OAuth return: the token arrives in the URL and is processed asynchronously, so poll briefly
+    // until the session lands so the UI flips to signed-in without needing a manual refresh.
+    if (/access_token=|[?&]code=/.test((window.location.hash || "") + (window.location.search || ""))) {
+      var tries = 0, iv = setInterval(function () {
+        tries++;
+        SB.auth.getSession().then(function (res) { var s = res && res.data ? res.data.session : null; if (s) { clearInterval(iv); handleSession(s); } });
+        if (tries >= 8) clearInterval(iv);
+      }, 400);
+    }
   }
   function handleSession(session) {
     _user = session && session.user ? session.user : null;
