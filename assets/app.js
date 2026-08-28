@@ -12,18 +12,21 @@
   function humanDays(d) { if (d < 1) return "now"; if (d < 7) return d + "d"; if (d < 30) return Math.round(d / 7) + "w"; return Math.round(d / 30) + "mo"; }
 
   /* ---------- state ---------- */
-  var KEY = "pg.v2";
+  var KEY = "pg.v3";
   var state = load();
   function load() {
-    var s;
-    try { s = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { s = {}; }
-    s.code = s.code || {}; s.solved = s.solved || {}; s.quiz = s.quiz || {};
-    s.learned = s.learned || {}; s.cards = s.cards || {}; s.rag = s.rag || {};
-    s.builds = s.builds || {}; s.decompDone = s.decompDone || [];
-    s.lang = s.lang || "js";
-    return s;
+    var d = {};
+    try { d = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { d = {}; }
+    return {
+      // durable: persists across sessions
+      completed: d.completed || {},
+      cards: d.cards || {},
+      lang: d.lang || "js",
+      // session-only: never persisted, so a lesson left unfinished resets on reload
+      learned: {}, solved: {}, code: {}, quiz: {}, decompDone: [], rag: {}, builds: {}, deck: {}
+    };
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} updateRing(); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ completed: state.completed, cards: state.cards, lang: state.lang })); } catch (e) {} updateRing(); }
 
   /* ---------- spaced repetition (keyed cards) ---------- */
   function cardState(k) { return state.cards[k] || { box: 0, due: 0 }; }
@@ -220,7 +223,7 @@
     if (p.type === "decomp") return p.refs.every(function (i) { return state.decompDone.indexOf(i) !== -1; });
     if (p.type === "build") return p.refs.every(function (id) { return buildDone(id); });
     if (p.type === "framework") return p.refs.every(function (id) { return state.rag[id]; });
-    if (p.type === "deck") return PATTERNS.filter(function (x) { return cardState("pat:" + x.id).box >= 3; }).length >= 5;
+    if (p.type === "deck") return Object.keys(state.deck).length >= 12; // reviewed 12 cards this session
     return false;
   }
   function quizPassed(m) { return !!(state.quiz[m.id] && state.quiz[m.id].passed); }
@@ -230,14 +233,24 @@
     if (m.recall === "DECK") return cards.filter(function (c) { return cardState(c.key).box >= 3; }).length >= 5;
     return cards.every(function (c) { return cardState(c.key).box >= 1; });
   }
+  function lessonDone(m) { return !!(state.learned[m.id] && practiceDone(m) && quizPassed(m)); }
+  function maybeComplete(m) {
+    if (state.completed[m.id] || !lessonDone(m)) return false;
+    state.completed[m.id] = true;
+    recallCards(m).forEach(function (c) { if (!state.cards[c.key]) state.cards[c.key] = { box: 0, due: Date.now() }; });
+    save();
+    return true;
+  }
   function moduleSteps(m) {
-    return { learn: state.learned[m.id] ? 1 : 0, practice: practiceDone(m) ? 1 : 0, quiz: quizPassed(m) ? 1 : 0, reinforce: reinforceDone(m) ? 1 : 0 };
+    if (state.completed[m.id]) return { learn: 1, practice: 1, quiz: 1, reinforce: reinforceDone(m) ? 1 : 0 };
+    return { learn: state.learned[m.id] ? 1 : 0, practice: practiceDone(m) ? 1 : 0, quiz: quizPassed(m) ? 1 : 0, reinforce: 0 };
   }
   function modulePct(m) { var s = moduleSteps(m); return (s.learn + s.practice + s.quiz + s.reinforce) / 4; }
   function trackModules(tid) { return MODULES.filter(function (m) { return m.track === tid; }); }
-  function trackPct(tid) { var ms = trackModules(tid); if (!ms.length) return 0; return ms.reduce(function (a, m) { return a + modulePct(m); }, 0) / ms.length; }
-  function overallPct() { return MODULES.reduce(function (a, m) { return a + modulePct(m); }, 0) / MODULES.length; }
-  function dueCount() { var n = 0; MODULES.forEach(function (m) { recallCards(m).forEach(function (c) { if (cardState(c.key).due <= Date.now() && cardState(c.key).box > 0) n++; }); }); return n; }
+  function trackCompleted(tid) { return trackModules(tid).filter(function (m) { return state.completed[m.id]; }).length; }
+  function trackPct(tid) { var ms = trackModules(tid); return ms.length ? trackCompleted(tid) / ms.length : 0; }
+  function overallPct() { return MODULES.filter(function (m) { return state.completed[m.id]; }).length / MODULES.length; }
+  function dueCount() { return Object.keys(state.cards).filter(function (k) { return state.cards[k].due <= Date.now(); }).length; }
 
   /* ---------- router ---------- */
   var view = { name: "home", track: null, module: null, step: "learn" };
@@ -257,13 +270,12 @@
   function homeHTML() {
     var due = dueCount();
     var cards = TRACKS.map(function (t) {
-      var ms = trackModules(t.id), pct = Math.round(trackPct(t.id) * 100);
-      var ready = ms.filter(function (m) { return modulePct(m) >= 0.99; }).length;
+      var ms = trackModules(t.id), pct = Math.round(trackPct(t.id) * 100), done = trackCompleted(t.id);
       return '<button class="track-card" data-track="' + t.id + '">' +
         '<div class="tc-top"><span class="tc-short">' + esc(t.short) + '</span><span class="tc-pct">' + pct + '%</span></div>' +
         '<h3>' + esc(t.name) + '</h3><p>' + esc(t.blurb) + '</p>' +
         '<div class="tc-bar"><span style="width:' + pct + '%"></span></div>' +
-        '<div class="tc-foot">' + ready + ' / ' + ms.length + ' modules interview-ready</div>' +
+        '<div class="tc-foot">' + done + ' / ' + ms.length + ' modules completed</div>' +
         '</button>';
     }).join("");
     return '<div class="wrap">' +
@@ -283,12 +295,12 @@
   function trackHTML(tid) {
     var t = byId(TRACKS, tid), ms = trackModules(tid);
     var cards = ms.map(function (m) {
-      var pct = Math.round(modulePct(m) * 100), s = moduleSteps(m);
+      var completed = !!state.completed[m.id], pct = Math.round(modulePct(m) * 100), s = moduleSteps(m);
       var chips = [["Learn", s.learn], ["Practice", s.practice], ["Quiz", s.quiz], ["Reinforce", s.reinforce]].map(function (x) {
         return '<span class="mchip' + (x[1] ? " on" : "") + '">' + x[0] + '</span>';
       }).join("");
       return '<button class="module-card" data-module="' + m.id + '">' +
-        '<div class="mc-head"><div><span class="mc-kicker">' + esc(m.kicker) + ' &middot; ' + esc(m.est) + '</span><h3>' + esc(m.title) + '</h3></div><span class="mc-pct">' + pct + '%</span></div>' +
+        '<div class="mc-head"><div><span class="mc-kicker">' + esc(m.kicker) + ' &middot; ' + esc(m.est) + '</span><h3>' + esc(m.title) + '</h3></div><span class="mc-pct' + (completed ? " done" : "") + '">' + (completed ? "Done ✓" : pct + "%") + '</span></div>' +
         '<div class="mchips">' + chips + '</div>' +
         '<div class="mc-bar"><span style="width:' + pct + '%"></span></div>' +
         '</button>';
@@ -333,7 +345,25 @@
       var dot = t.querySelector(".st-dot"); if (dot) dot.classList.toggle("on", !!done);
     });
   }
-  function chrome() { var m = byId(MODULES, view.module); if (m) updateModuleChrome(m); }
+  function chrome() {
+    var m = byId(MODULES, view.module); if (!m) return;
+    var was = !!state.completed[m.id];
+    maybeComplete(m);
+    updateModuleChrome(m);
+    if (!was && state.completed[m.id]) onLessonComplete(m);
+  }
+  function onLessonComplete(m) {
+    toast("Lesson complete. This module is saved, and Reinforce is unlocked.");
+    if (view.step === "reinforce") renderStep();
+  }
+  var _toastT = null;
+  function toast(msg) {
+    var t = $("#toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.add("show");
+    if (_toastT) clearTimeout(_toastT);
+    _toastT = setTimeout(function () { t.classList.remove("show"); }, 4000);
+  }
 
   function stepNav(m, cur) {
     var order = ["learn", "practice", "quiz", "reinforce"], i = order.indexOf(cur), next = order[i + 1];
@@ -359,7 +389,7 @@
       '<div class="learn-points">' + points + '</div>' + tmpl + ex +
       '<div class="learn-actions"><button class="btn ' + (read ? "btn-ghost" : "btn-primary") + '" id="markLearned">' + (read ? "Marked as read ✓" : "Mark as read") + '</button>' +
       '<button class="btn btn-ghost" id="toPractice">Go to Practice &rarr;</button></div></div>';
-    $("#markLearned").addEventListener("click", function () { state.learned[m.id] = true; save(); renderStep(); });
+    $("#markLearned").addEventListener("click", function () { state.learned[m.id] = true; renderStep(); chrome(); });
     $("#toPractice").addEventListener("click", function () { go({ step: "practice" }); });
   }
 
@@ -385,7 +415,7 @@
     } else if (p.type === "framework") {
       area.appendChild(frameworkGrid(p.refs));
     } else if (p.type === "deck") {
-      var note = document.createElement("p"); note.className = "step-note"; note.innerHTML = "The recognition deck lives under <b>Reinforce</b> - that is the practice for this module."; area.appendChild(note);
+      area.appendChild(sessionDeck(m));
     }
     wireStepNav(m, "practice");
   }
@@ -511,6 +541,27 @@
     $$('input[data-rag]', el).forEach(function (cb) { cb.addEventListener("change", function () { state.rag[cb.getAttribute("data-rag")] = cb.checked; save(); chrome(); }); });
     return el;
   }
+  /* session review deck (practice for the pattern-recognition module) */
+  function sessionDeck(m) {
+    var cards = recallCards(m), idx = 0, flipped = false;
+    var el = document.createElement("div"); el.className = "deck-stage";
+    function draw() {
+      flipped = false;
+      var reviewed = Object.keys(state.deck).length, c = cards[idx % cards.length];
+      el.innerHTML = '<div class="flashcard" id="sflash"><p class="fc-side-label">Name the pattern</p><p class="fc-tell">' + esc(c.front) + '</p><p class="fc-hint">Answer in your head, then check.</p><button class="btn btn-primary sflip">Show the answer</button></div>' +
+        '<div class="deck-legend"><span>' + Math.min(reviewed, 12) + ' / 12 reviewed this session</span><span>' + cards.length + ' in the deck</span></div>';
+      el.querySelector(".sflip").addEventListener("click", flip);
+      el.querySelector("#sflash").addEventListener("click", flip);
+    }
+    function flip() {
+      if (flipped) return; flipped = true;
+      var c = cards[idx % cards.length], fc = el.querySelector("#sflash"); fc.style.cursor = "default";
+      fc.innerHTML = '<p class="fc-side-label">Pattern</p><p class="fc-answer">' + esc(c.back) + '</p><button class="btn btn-primary snext">Got it, next card</button>';
+      fc.querySelector(".snext").addEventListener("click", function (ev) { ev.stopPropagation(); state.deck[c.key] = true; idx++; chrome(); draw(); });
+    }
+    draw();
+    return el;
+  }
 
   /* ---------- QUIZ ---------- */
   function renderQuiz(m, body) {
@@ -568,6 +619,11 @@
   /* ---------- REINFORCE (spaced repetition) ---------- */
   var deckQueue = [], deckCurrent = null, deckFlipped = false, deckCards = [];
   function renderReinforce(m, body) {
+    if (!state.completed[m.id]) {
+      body.innerHTML = '<div class="locked"><h3>Reinforcement unlocks when the lesson is done.</h3><p>Finish Learn, Practice, and the Quiz for this module in one sitting. Then its cards drop into your spaced-repetition schedule here and stay saved across sessions.</p><button class="btn btn-primary" id="toLearn">Go to Learn</button></div>' + stepNav(m, "reinforce");
+      var lb = $("#toLearn"); if (lb) lb.addEventListener("click", function () { go({ step: "learn" }); });
+      wireStepNav(m, "reinforce"); return;
+    }
     deckCards = recallCards(m);
     if (!deckCards.length) { body.innerHTML = '<p class="step-note">No spaced-repetition cards for this module.</p>' + stepNav(m, "reinforce"); wireStepNav(m, "reinforce"); return; }
     body.innerHTML = '<p class="step-note">Grade your recall so the weak cards resurface sooner. This is what makes it stick.</p><div class="deck-stage" id="deckStage"></div>' + stepNav(m, "reinforce");
@@ -619,7 +675,7 @@
     var db = $("[data-review]"); if (db) db.addEventListener("click", function () { var m = firstDueModule(); if (m) go({ name: "module", module: m.id, step: "reinforce" }); });
     var sb = $("[data-start]"); if (sb) sb.addEventListener("click", function () { go({ name: "module", module: "two-pointers", step: "learn" }); });
   }
-  function firstDueModule() { for (var i = 0; i < MODULES.length; i++) { var cs = recallCards(MODULES[i]); for (var j = 0; j < cs.length; j++) if (cardState(cs[j].key).due <= Date.now() && cardState(cs[j].key).box > 0) return MODULES[i]; } return MODULES[0]; }
+  function firstDueModule() { var now = Date.now(); for (var i = 0; i < MODULES.length; i++) { var cs = recallCards(MODULES[i]); for (var j = 0; j < cs.length; j++) { var st = state.cards[cs[j].key]; if (st && st.due <= now) return MODULES[i]; } } return null; }
 
   /* ---------- topbar ring ---------- */
   function updateRing() {
@@ -634,7 +690,7 @@
   $("#progressRing").addEventListener("click", function () { go({ name: "home" }); });
   $("#resetAll").addEventListener("click", function () {
     if (!window.confirm("Reset all saved progress on this device? This cannot be undone.")) return;
-    state = { code: {}, solved: {}, quiz: {}, learned: {}, cards: {}, rag: {}, builds: {}, decompDone: [], lang: "js" };
+    state = { completed: {}, cards: {}, lang: "js", learned: {}, solved: {}, code: {}, quiz: {}, decompDone: [], rag: {}, builds: {}, deck: {} };
     save(); go({ name: "home" });
   });
   render();
