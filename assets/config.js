@@ -23,7 +23,7 @@ window.PG_CONFIG = {
   // languages (JavaScript, Python) run, exactly as before. When set, problems
   // that provide solutions in compiled languages show them in the selector and
   // run on the judge.
-  JUDGE_URL: "",
+  JUDGE_URL: "https://5.78.238.10.sslip.io",
 
   // Which compiled languages to offer, if JUDGE_URL is set and a problem
   // supports them. Order is the display order.
