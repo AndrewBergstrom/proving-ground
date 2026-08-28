@@ -6,8 +6,8 @@
 var TRACKS = [
   { id: "foundations", name: "Foundations", short: "Basics", blurb: "New to this? Start here. The assumed knowledge - Big-O, arrays, loops, and hashing - explained from zero, so the rest of the app actually makes sense." },
   { id: "dsa", name: "Algorithms & Data Structures", short: "DSA", blurb: "The LeetCode-style pattern round. Recognize the pattern, then implement it under time pressure." },
-  { id: "fde", name: "Forward Deployed", short: "FDE", blurb: "Decomposition under ambiguity, practical builds, and customer framing  - the loop AI companies actually run." },
-  { id: "platform", name: "Platform & Cloud", short: "Platform", blurb: "Applied system design, reliability, and infrastructure. Pragmatic design over algorithm puzzles." },
+  { id: "fde", name: "Forward Deployed", short: "FDE", blurb: "Decomposition under ambiguity, systems integration, orchestrating AI coding agents, and translating tech to stakeholders  - the practical-engineer loop AI companies actually run." },
+  { id: "platform", name: "Platform & Cloud", short: "Platform", blurb: "Applied system design, infrastructure as code, CI/CD, observability, and incident response. Pragmatic production thinking over algorithm puzzles." },
   { id: "ai", name: "Applied AI", short: "AI", blurb: "RAG, agents, and evals  - the emerging applied-AI interview, still forming." },
   { id: "data-eng", name: "Data Engineering", short: "Data", blurb: "SQL, pipelines, and modeling. The data-plumbing loop, with a sensor and meter-data slant that fits energy and water companies." },
   { id: "data-sci", name: "Data Science & ML", short: "DS/ML", blurb: "Statistics, data wrangling, machine learning, and model evaluation - including the time-series forecasting behind energy and water analytics." }
@@ -317,17 +317,44 @@ var BUILDS = [
   { id: "rag", badge: "Applied-AI · retrieval", title: "Minimal RAG service with an 'I don't know'", brief: "Build a minimal RAG service that answers questions over a folder of a customer's documents, and can tell you when it doesn't know.", clarify: ["Document types, volume, and change frequency?", "Latency and cost budget per query?", "Out-of-scope behavior: refuse or general-knowledge?", "How will you measure that it works?"], build: ["Ingest: chunk and embed; justify chunk size and overlap.", "Retrieve: embed the query, pull a tight top-k, maybe rerank.", "Generate: a grounded, structured answer citing sources.", "Guardrail: abstain when retrieval is weak; never fabricate.", "Evaluate: a tiny eval set, retrieval and generation separately."], curveball: "The customer says answers are sometimes confidently wrong. Add a way to detect and cut low-grounding answers, and show a metric that proves it improved.", explain: ["Walk the six stages of the RAG framework.", "Show one strong answer and one correct refusal.", "State your eval numbers, kept separate."], reference: ["Evaluate retrieval (Precision@k, NDCG) and generation (faithfulness) separately.", "An abstain path beats a confident hallucination.", "Cite sources so answers are auditable.", "Cache embeddings; keep top-k tight for cost."] },
   { id: "refactor", badge: "Build quality · adaptability", title: "Refactor under a new requirement, keep tests green", brief: "You're handed a working-but-gnarly module with a passing test suite. A new requirement lands. Ship it without breaking the tests or the readability.", clarify: ["What exactly is the new requirement; are the tests the contract?", "Any performance or interface-stability constraints?", "Is readability part of what's judged? (Usually yes.)"], build: ["Run the tests first; understand current behavior.", "Refactor in small, safe steps, tests green between each.", "Add the new behavior behind a clear seam; test it.", "Keep the public interface stable unless changing it is the point."], curveball: "A second, slightly conflicting requirement arrives. Show how your refactor made it a small change instead of a rewrite.", explain: ["Narrate the refactor as green steps, not one leap.", "Point to the seam that made the second change cheap.", "Show the suite still passing."], reference: ["Characterization tests first to lock behavior.", "Small green steps; never a long red period.", "New behavior isolated; interface stable.", "Adaptability proven by the second change being cheap."] },
   { id: "webhooks", badge: "Platform · eventing", title: "Webhook delivery service with retries", brief: "Build a service that delivers event notifications to customer webhook URLs and keeps trying when they fail.", clarify: ["Delivery guarantee: at-least-once? Ordering required?", "Retry and backoff policy; when to dead-letter?", "Do you sign payloads for verification?", "How do customers dedupe a repeat?"], build: ["Accept events and enqueue them, decoupled from the producer.", "POST to the endpoint; non-2xx and timeouts are failures.", "Retry with exponential backoff and jitter, capped, then dead-letter.", "Sign payloads and include an idempotency key.", "Expose delivery status and observability."], curveball: "A customer's endpoint is down for six hours, then comes back. Make sure their events aren't lost and don't replay in a thundering herd, and that one bad endpoint can't starve delivery to everyone else.", explain: ["State your delivery guarantee and how you achieve it.", "Walk the backoff strategy and dead-letter path.", "Show how one slow customer is isolated."], reference: ["A durable queue; ingestion decoupled from delivery.", "Exponential backoff with jitter and a max-attempt cap.", "Per-customer isolation so one endpoint can't block others.", "Signed payloads and idempotency keys."] },
-  { id: "evalharness", badge: "Applied-AI · evaluation", title: "Eval harness for an LLM feature", brief: "An LLM feature 'works on the demo' but nobody knows if a change makes it better or worse. Build an eval harness that answers that.", clarify: ["What is the task, and what does 'correct' mean?", "Where does the eval set come from; how representative?", "Offline, online, or both?"], build: ["Assemble a small, representative eval set with expected outputs or rubrics.", "Choose metrics that match the task.", "Run the current system over the set; record scores reproducibly.", "Make it a one-command run any change can be measured against.", "Report per-case results so regressions are debuggable."], curveball: "The task has no single right answer. Add an LLM-as-judge scorer, then show how you'd check the judge itself isn't biased or drifting.", explain: ["Explain how the eval set was built and why the metrics fit.", "State the pass/fail bar.", "Show a per-case view where a regression would surface."], reference: ["A version-controlled eval set and reproducible run beat vibes.", "Metrics fit the task; per-case output for debugging.", "Validate an LLM-judge against human labels first.", "A clear pass/fail bar for objective shipping decisions."] }
+  { id: "evalharness", badge: "Applied-AI · evaluation", title: "Eval harness for an LLM feature", brief: "An LLM feature 'works on the demo' but nobody knows if a change makes it better or worse. Build an eval harness that answers that.", clarify: ["What is the task, and what does 'correct' mean?", "Where does the eval set come from; how representative?", "Offline, online, or both?"], build: ["Assemble a small, representative eval set with expected outputs or rubrics.", "Choose metrics that match the task.", "Run the current system over the set; record scores reproducibly.", "Make it a one-command run any change can be measured against.", "Report per-case results so regressions are debuggable."], curveball: "The task has no single right answer. Add an LLM-as-judge scorer, then show how you'd check the judge itself isn't biased or drifting.", explain: ["Explain how the eval set was built and why the metrics fit.", "State the pass/fail bar.", "Show a per-case view where a regression would surface."], reference: ["A version-controlled eval set and reproducible run beat vibes.", "Metrics fit the task; per-case output for debugging.", "Validate an LLM-judge against human labels first.", "A clear pass/fail bar for objective shipping decisions."] },
+  { id: "integration", badge: "FDE · systems integration", title: "Nightly sync from a customer's API into your app", brief: "A customer wants their records (think Salesforce contacts) to appear in your product every morning. Build a small, reliable sync that pulls from their API each night and lands clean data your app can read.", clarify: ["Full reload or incremental (only what changed since last run)?", "Their auth: OAuth or API key, and what are the rate limits?", "One-way into your app, or bidirectional?", "What does 'synced' mean: a freshness SLA, reconciled counts?", "How are deletes on their side reflected on yours?"], build: ["Authenticate, then page through their API respecting rate limits.", "Pull incrementally using a cursor or an updated-since watermark.", "Map their schema to yours behind a translation layer, not inline.", "Upsert idempotently on a stable natural key; re-runs must not duplicate.", "Record a run summary: pulled, upserted, skipped, errors."], curveball: "Their API starts rate-limiting you mid-sync (HTTP 429) and, separately, they rename a field you depend on. Make the sync resilient to both: back off and resume without losing data, and absorb the schema drift without a code change every time.", explain: ["Lead with the freshness the customer actually needs, not your pipeline.", "Show an incremental run that pulls only what changed.", "Justify your idempotency key and the translation layer."], reference: ["Incremental cursor over full re-pull; resumable on failure.", "Respect 429 with backoff and continue where it left off.", "An anti-corruption layer so their schema drift doesn't ripple into your app.", "Idempotent upserts on a natural key; an observable run summary."] },
+  { id: "statusdoc", badge: "FDE · communication", title: "Translate an outage into a stakeholder update", brief: "A background job that generates customer reports failed overnight, and reports are six hours late. Write the update three ways: for the customer's executive sponsor, for their technical admin, and as an internal note for your own team.", clarify: ["Who is each audience and what decision do they need to make?", "What is actually known versus still under investigation?", "What is the ask or next step for each reader?", "What cadence of follow-up updates will you commit to?"], build: ["Lead every version with the bottom line up front (BLUF).", "Translate the technical cause into the impact that audience feels.", "State what you're doing and exactly when the next update lands.", "Keep the exec version to a few jargon-free sentences.", "Give the admin the technical specifics; keep the internal note blunt and action-oriented."], curveball: "The exec replies, 'Is our data safe, and will this happen again?' Write the two-sentence answer that is honest and reassuring without over-promising a fix you haven't shipped.", explain: ["Read each version aloud; the first sentence should carry the whole message.", "Check that no unexplained jargon reached the non-technical reader.", "Confirm each version names a next-update time."], reference: ["BLUF in every version; the answer is the first sentence.", "Impact translated to the audience, not raw technical cause.", "Expectations and a next-update time stated explicitly.", "Altitude matched to the reader; honesty over false reassurance."] },
+  { id: "terraform", badge: "Platform · infrastructure as code", title: "A reusable Terraform module, planned before applied", brief: "Provision a small piece of cloud infrastructure (say an object-storage bucket plus its access policy) as a reusable Terraform module, with clean inputs, outputs, and a safe plan/apply workflow across environments.", clarify: ["Which resources and which provider?", "What varies per environment (dev/test/prod) and belongs in variables?", "Where does state live, and how is it locked?", "What are the naming and tagging conventions?"], build: ["Define the resources, with variables for the parts that change per environment.", "Expose outputs that other modules or environments consume.", "Run plan and actually read it before you apply.", "Wire remote state with locking so two people can't collide.", "Stand up dev/test/prod by parameterizing, not copy-pasting the module."], curveball: "Someone changed the bucket by hand in the cloud console, so your state no longer matches reality (drift). Show how you detect it and reconcile without destroying data, then bring up a second environment from the same module cleanly.", explain: ["Walk the plan output and exactly what it would change.", "Justify what you made a variable versus hardcoded.", "Explain how remote state and locking prevent collisions."], reference: ["Declarative desired state, not imperative setup scripts.", "Plan-before-apply as the safety gate on every change.", "Remote state with locking; drift detected via plan and reconciled deliberately.", "Environment differences live in variables, not forked copies of the module."] },
+  { id: "pipeline", badge: "Platform · delivery", title: "A deployment pipeline with a safe rollout", brief: "Design and wire a CI/CD pipeline that takes a commit to production without anyone running deploy commands by hand, and can undo a bad release fast.", clarify: ["What gates a merge: tests, lint, security scan, review?", "Build once and promote the same artifact, or rebuild per stage?", "Rollout strategy: canary, blue-green, or rolling?", "How is a rollback triggered, and how fast is it?"], build: ["Lay out the stages: build, test, package a versioned artifact, deploy to staging, then prod.", "Promote the identical artifact rather than rebuilding per stage.", "Roll out progressively: canary a small slice, watch health, then widen.", "Keep an automated rollback path tied to health signals.", "Make every run reproducible and logged, so any deploy is auditable."], curveball: "The canary looks fine, but error rates climb five minutes after full rollout. Show how the pipeline detects that and rolls back automatically, and how you'd stop that same bad build from being promoted again.", explain: ["Walk a single commit through every gate to prod.", "Justify your rollout strategy and its blast radius.", "Show where rollback kicks in and how fast."], reference: ["Build-once-promote-many with an immutable, versioned artifact.", "Progressive delivery to limit blast radius.", "Automated rollback tied to health signals, not a human noticing.", "Gates that block bad code before prod; every deploy reproducible and audited."] }
 ];
 
-/* ===================== RAG / AGENT FRAMEWORK ===================== */
+/* ===================== REUSABLE FRAMEWORK STAGES =====================
+ * Each set is a "tick every stage once you can run it unaided" practice.
+ * Looked up by id via byId(RAG_STAGES, id); ids are globally unique. */
 var RAG_STAGES = [
+  /* RAG / agent design */
   { id: "scope", step: "Stage 1", h: "Scope", p: "Inputs, outputs, latency budget, cost ceiling, and what a wrong answer costs. Frame the problem before any architecture." },
   { id: "ingest", step: "Stage 2", h: "Ingest", p: "Chunk and embed source documents into a vector store. Justify chunk size, overlap, and indexing choices out loud." },
   { id: "retrieve", step: "Stage 3", h: "Retrieve", p: "Embed the query, pull a tight top-k, and consider reranking. Retrieve less but more relevant to control cost and noise." },
   { id: "act", step: "Stage 4", h: "Act / Generate", p: "Structured output for reliability. For agents, define the tools, their schemas, and approval gates before any action." },
   { id: "guard", step: "Stage 5", h: "Guardrails", p: "Refuse out-of-scope requests, validate outputs, and route to a human above confidence or risk thresholds." },
-  { id: "eval", step: "Stage 6", h: "Evaluate", p: "Measure retrieval and generation quality separately so you can localize failures, and track them over time." }
+  { id: "eval", step: "Stage 6", h: "Evaluate", p: "Measure retrieval and generation quality separately so you can localize failures, and track them over time." },
+  /* Orchestrating AI coding agents */
+  { id: "ao-spec", step: "Step 1", h: "Spec before you spawn", p: "Write the intent, the constraints, and a concrete definition of done before you hand work to an agent. A vague prompt yields vague code; the spec is your steering wheel." },
+  { id: "ao-decompose", step: "Step 2", h: "Decompose into verifiable units", p: "Break the work into small pieces each with a clear check. Agents drift on large open-ended tasks; a tight scope with an obvious way to verify keeps them honest." },
+  { id: "ao-delegate", step: "Step 3", h: "Delegate with the right context", p: "Give the agent the interface, examples, and constraints it needs, and nothing it doesn't. Then let it draft. Feeding it the whole repo when it needs one function wastes tokens and focus." },
+  { id: "ao-verify", step: "Step 4", h: "Verify like a senior reviewer", p: "You own the output. Run it, test the edges, read for correctness and security. Trust nothing you didn't check; a confident agent is not a correct one." },
+  { id: "ao-integrate", step: "Step 5", h: "Integrate and keep it coherent", p: "Land the verified pieces into the whole. Reconcile interfaces, delete dead scaffolding, and keep the build green between steps so the system never drifts into a broken state." },
+  { id: "ao-steer", step: "Step 6", h: "Know when to take the wheel", p: "When the agent loops, invents an API, or the task needs real judgment, stop delegating and drive. Orchestration is choosing which lever to pull, not deferring every decision to the model." },
+  /* Observability and SLOs */
+  { id: "ob-sli", step: "Stage 1", h: "Pick the SLI", p: "A Service Level Indicator is the one measured thing that reflects user happiness: request success rate, latency, or freshness. Measure what the user feels, not what is easy to graph." },
+  { id: "ob-slo", step: "Stage 2", h: "Set the SLO", p: "A Service Level Objective is the target for that indicator over a window, e.g. 99.9% of requests succeed each month. It's a deliberate promise, not a hope." },
+  { id: "ob-budget", step: "Stage 3", h: "Spend the error budget", p: "100% minus the SLO is your error budget: the failure you're allowed. It turns reliability into a currency you spend on shipping speed versus hardening." },
+  { id: "ob-signals", step: "Stage 4", h: "Instrument the three signals", p: "Metrics (what is happening), logs (what happened), traces (where the time went). Together they take you from 'it's slow' to 'this call, this dependency' fast." },
+  { id: "ob-alert", step: "Stage 5", h: "Alert on symptoms, not causes", p: "Page on user-facing SLO burn, not on every CPU spike. An alert that doesn't need a human action is noise that trains people to ignore the pager." },
+  /* Incident command */
+  { id: "ic-detect", step: "Stage 1", h: "Detect and declare", p: "Something is wrong: an alert fired or a customer reported it. Acknowledge fast and declare an incident with a named owner. A named incident beats a silent scramble." },
+  { id: "ic-triage", step: "Stage 2", h: "Triage the blast radius", p: "Who and what is affected, and how badly? Set a severity. Scope drives everything: how many people you pull in and how loudly you communicate." },
+  { id: "ic-mitigate", step: "Stage 3", h: "Mitigate first, fix later", p: "Stop the bleeding before you hunt the root cause. Roll back, fail over, or flag the feature off. Restoring service is the job; the perfect fix can wait for calm." },
+  { id: "ic-communicate", step: "Stage 4", h: "Communicate on a cadence", p: "Stakeholders need a steady drumbeat: what's impacted, what you're doing, when the next update lands. Silence during an outage is its own incident." },
+  { id: "ic-resolve", step: "Stage 5", h: "Resolve and verify", p: "Confirm the system is truly healthy, not just quiet, before closing. Watch the SLIs recover and check the mitigation didn't mask a second failure." },
+  { id: "ic-postmortem", step: "Stage 6", h: "Blameless postmortem", p: "Write the timeline, the contributing causes, and the action items. Blame the system and the gaps, not the person; the goal is that this class of failure can't recur." }
 ];
 
 /* ===================== PATTERN RECOGNITION CARDS ===================== */
@@ -523,6 +550,33 @@ var MODULES = [
     ]
   },
   {
+    id: "systems-integration", track: "fde", title: "Systems Integration", kicker: "Core skill", est: "50 min",
+    learn: {
+      intro: "Most forward-deployed work is wiring one system to another: pull the customer's data out of their tool, reshape it, and land it in yours. The hard parts are almost never algorithms. They're auth, rate limits, idempotency, and the customer's messy reality. This is the day job, and interviews probe it directly.",
+      points: [
+        { h: "Auth is the first wall", p: "Before a single record moves, you have to get in: OAuth flows, API keys, token refresh, and per-tenant credentials. Half of integration bugs live here. Ask early what auth the customer's system uses and what its rate limits are." },
+        { h: "Incremental beats full reload", p: "Re-pulling everything every night doesn't scale and hammers their API. Pull only what changed since last run using a cursor or an updated-since watermark, and make the job resumable if it dies halfway." },
+        { h: "Idempotency makes retries safe", p: "Networks fail mid-sync. If re-running the same batch double-counts records, you have a data-integrity bug. Upsert on a stable natural key so running twice is the same as running once." },
+        { h: "The anti-corruption layer", p: "Never let the customer's schema leak straight into your app. Map their fields to your model in one translation layer, so when they rename a field or add a quirk, you change one place, not ten. Their mess stays their mess." },
+        { h: "Poll vs webhook", p: "Polling asks 'anything new?' on a schedule: simple, but laggy and wasteful. Webhooks push events to you in near-real-time: fresher, but you must handle retries, duplicates, and out-of-order delivery. Pick based on the freshness the customer actually needs." }
+      ],
+      template: null,
+      example: { h: "The move", p: "When asked to 'sync their data nightly,' don't start drawing boxes. Start with: what auth, what rate limits, full or incremental, and what's the natural key that makes a record unique? Those four answers shape the entire design." }
+    },
+    practice: { type: "build", refs: ["integration"], note: "Build the nightly sync in your editor, handle the rate-limit-and-schema-drift curveball, then self-score on the four dimensions." },
+    quiz: [
+      { q: "Why upsert on a natural key instead of just inserting rows?", choices: ["It's faster to type", "So a retry or a re-sent file doesn't create duplicate records", "It uses less memory", "Databases require it"], answer: 1, explain: "Idempotency: syncs fail and get retried, so running the same batch twice must not double-count. A stable natural key makes the upsert safe." },
+      { q: "The main reason to put a translation layer between their schema and yours is:", choices: ["It looks more professional", "So their schema changes don't ripple through your whole app", "It's required by OAuth", "To make the sync slower and safer"], answer: 1, explain: "An anti-corruption layer localizes their mess: when they rename or add a field, you change one mapping, not every place that touched the data." },
+      { q: "A customer needs records to appear 'within a minute of changing.' This points to:", choices: ["A nightly full reload", "Webhooks (push) rather than slow polling", "A bigger database", "Manual export"], answer: 1, explain: "Near-real-time freshness favors webhooks pushing events to you, accepting the cost of handling retries, duplicates, and ordering." }
+    ],
+    recall: [
+      { front: "Full reload vs incremental sync?", back: "Incremental pulls only what changed since last run (via a cursor/watermark); it scales and spares their API. Full reload doesn't." },
+      { front: "What makes a sync safe to retry?", back: "Idempotency: upsert on a stable natural key so running twice equals running once, no duplicates." },
+      { front: "What is an anti-corruption layer?", back: "A translation layer mapping the customer's schema to yours, so their schema drift changes one place, not your whole app." },
+      { front: "Poll vs webhook tradeoff?", back: "Polling is simple but laggy and wasteful; webhooks are fresh but you must handle retries, duplicates, and ordering." }
+    ]
+  },
+  {
     id: "practical-builds-fde", track: "fde", title: "Practical Builds", kicker: "Take-home", est: "ongoing",
     learn: {
       intro: "FDE coding is practical, not LeetCode-hard: parse a messy CSV, wire an integration, ship a small service. The take-home wants a running build and a clear walkthrough, scored on four dimensions.",
@@ -541,6 +595,60 @@ var MODULES = [
     recall: [
       { front: "The four FDE build dimensions?", back: "Customer framing, build quality, adaptability, explanation." },
       { front: "What is 'build-and-extend'?", back: "A multi-part task: build the core, then extend when a new requirement lands mid-exercise  - design seams so the change is cheap." }
+    ]
+  },
+  {
+    id: "agent-orchestration", track: "fde", title: "Orchestrating AI Coding Agents", kicker: "The shift", est: "45 min",
+    learn: {
+      intro: "The industry is moving from 'who writes the best code by hand' to 'who can direct the agents that write it, and vouch for the result.' Your leverage is no longer typing speed; it's decomposing work, specifying it crisply, and verifying what comes back. This is a real, learnable skill, and it's increasingly what practical-engineer interviews and jobs actually test.",
+      points: [
+        { h: "The leverage shifted", p: "An engineer who can orchestrate agents ships far more than one who types every line, but only if they can guarantee the output. The bottleneck moved from writing code to specifying and verifying it. That's the skill to build." },
+        { h: "Spec before you spawn", p: "A vague prompt yields vague code. State the intent, the constraints, and a concrete definition of done up front. The clearer your spec, the less you rework. Treat the agent like a fast, literal junior who does exactly what you asked, not what you meant." },
+        { h: "Decompose into verifiable units", p: "Agents drift on big open-ended tasks. Break work into small pieces, each with an obvious way to check it (a test, a run, a diff you can read). Small verifiable units keep both you and the agent honest." },
+        { h: "You own the output", p: "The agent's confidence is not correctness. Review its work like a senior reviews a junior: run it, test the edges, read for correctness and security. When you ship it, it's yours, so verify nothing you didn't check." },
+        { h: "Know when to take the wheel", p: "When the agent loops, invents an API that doesn't exist, or the task needs real judgment, stop delegating and drive. Orchestration is knowing which lever to pull, not blindly deferring every call to the model." }
+      ],
+      template: null,
+      example: { h: "The move", p: "Faced with 'add rate limiting to this service,' don't paste it into an agent and hope. Write the spec (per-key limit, 429 with Retry-After, fail-open), split it into build + tests, let the agent draft each, then run the tests yourself and read the concurrency path. Direct, verify, own it." }
+    },
+    practice: { type: "framework", refs: ["ao-spec", "ao-decompose", "ao-delegate", "ao-verify", "ao-integrate", "ao-steer"], note: "Tick each step once you can run a real feature through it: spec it, split it, delegate, verify, integrate, and know when to intervene." },
+    quiz: [
+      { q: "As agents write more of the code, the engineer's highest-value skill becomes:", choices: ["Typing faster than the agent", "Specifying work crisply and verifying the output", "Memorizing more syntax", "Avoiding agents entirely"], answer: 1, explain: "The bottleneck moves from writing to directing and verifying. The engineer who can spec clearly and vouch for the result has the leverage." },
+      { q: "An agent returns code that 'looks right' and runs on the happy path. You should:", choices: ["Ship it, it ran", "Review and test it like a senior reviews a junior before you own it", "Ask the agent if it's sure", "Add more comments"], answer: 1, explain: "Confidence is not correctness. You own what you ship: run it, test the edges, and read for correctness and security before trusting it." },
+      { q: "Why decompose a task into small units before handing it to an agent?", choices: ["Agents charge per task", "Small units each have a clear check, so drift is caught early", "It's required by the tool", "To make it take longer"], answer: 1, explain: "Agents drift on large open-ended work. Small pieces with an obvious way to verify keep the output honest and the failures local." }
+    ],
+    recall: [
+      { front: "What did the leverage shift from and to?", back: "From writing code by hand to specifying work crisply and verifying agent output. The bottleneck moved from typing to directing." },
+      { front: "Why 'spec before you spawn'?", back: "A vague prompt yields vague code. Intent + constraints + a definition of done up front means less rework; the agent does what you asked, not what you meant." },
+      { front: "Why review agent output like a senior reviewer?", back: "Agent confidence is not correctness, and you own what you ship. Run it, test edges, read for correctness and security." },
+      { front: "When do you take the wheel?", back: "When the agent loops, hallucinates an API, or the task needs real judgment. Orchestration is choosing which lever to pull, not deferring everything." }
+    ]
+  },
+  {
+    id: "stakeholder-comms", track: "fde", title: "Stakeholder Communication", kicker: "The multiplier", est: "45 min",
+    learn: {
+      intro: "The other half of the practical-engineer shift: the ability to translate technical reality into language a stakeholder can act on. A brilliant build nobody understands or trusts is worth less than a modest one explained clearly. In forward-deployed and customer-facing roles, communication is not soft; it's the multiplier on everything else you do.",
+      points: [
+        { h: "Read the audience first", p: "An executive, an engineer, and an end user need different altitudes. The exec wants impact and risk; the engineer wants the mechanism; the user wants what changes for them. Decide who you're talking to and what decision they need to make before you say a word." },
+        { h: "Lead with the bottom line (BLUF)", p: "Bottom Line Up Front: put the answer, the impact, or the ask in the first sentence, then the supporting detail below for whoever wants it. Busy readers should get the point without reading to the end. Burying the lede is the most common communication mistake." },
+        { h: "Translate feature into outcome", p: "Nobody outside engineering cares about p99 latency or a queue depth; they care that reports load before the meeting and nothing gets lost. Convert every technical fact into the outcome the listener feels. That translation is the entire skill." },
+        { h: "Set expectations honestly", p: "Name scope, risk, and timeline early. A clear 'not yet, and here's why' builds more trust than a vague yes you can't keep. It's surprises, not bad news, that break relationships. Under-promise the date; over-deliver the update." },
+        { h: "Confirm you were understood", p: "Communication is measured at the receiver, not the sender. Play back what you heard, and check they got what you meant. A demo is a story with a beginning and a payoff, not a feature tour, so end on the outcome that matters to them." }
+      ],
+      template: null,
+      example: { h: "The move", p: "Instead of 'the ETL job OOM'd so the Airflow DAG failed,' tell the customer's sponsor: 'Your morning reports are delayed about two hours; no data is lost, we've fixed the cause, and I'll confirm when they're flowing again by 10am.' Same facts, translated to the outcome and the next step they care about." }
+    },
+    practice: { type: "build", refs: ["statusdoc"], note: "Write the outage update three ways (exec, admin, internal), handle the exec's follow-up, then self-score. Framing = right audience and BLUF; quality = clarity and no stray jargon." },
+    quiz: [
+      { q: "BLUF (Bottom Line Up Front) means:", choices: ["Save the conclusion for the end", "Put the answer, impact, or ask in the first sentence", "Use bullet points only", "Always be blunt"], answer: 1, explain: "Lead with the point so a busy reader gets it immediately; supporting detail goes below for whoever wants it." },
+      { q: "Explaining a latency fix to a non-technical sponsor, you should say:", choices: ["We cut p99 from 800ms to 120ms", "Your dashboards now load in about a second instead of stalling", "We optimized the query planner", "We added an index and a cache"], answer: 1, explain: "Translate the technical fact into the outcome they feel. The sponsor cares that it's fast for their team, not the millisecond numbers." },
+      { q: "Which builds more trust with a stakeholder?", choices: ["A vague yes to keep them happy", "A clear 'not yet, here's why and when' with expectations set early", "Going silent until it's done", "Promising the earliest possible date"], answer: 1, explain: "Surprises break relationships, not bad news. Honest scope and timeline, and a steady update cadence, build trust." }
+    ],
+    recall: [
+      { front: "What does BLUF stand for and mean?", back: "Bottom Line Up Front: put the answer/impact/ask in the first sentence, detail below." },
+      { front: "The core of technical-to-stakeholder translation?", back: "Convert every technical fact into the outcome the listener feels (latency numbers -> 'reports load before your meeting')." },
+      { front: "Why set expectations early, even bad ones?", back: "Surprises break relationships, not bad news. A clear 'not yet, here's why' beats a vague yes you can't keep." },
+      { front: "Where is communication actually measured?", back: "At the receiver, not the sender. Confirm they understood what you meant; match the altitude to the audience." }
     ]
   },
   /* ---------- PLATFORM ---------- */
@@ -564,6 +672,114 @@ var MODULES = [
     recall: [
       { front: "The system-design arc?", back: "Requirements → high-level design → deep dives on the risky parts → wrap up (time-boxed)." },
       { front: "What scales with seniority in system design?", back: "How proactively you find weak points and lead the deep dives yourself." }
+    ]
+  },
+  {
+    id: "iac-terraform", track: "platform", title: "Infrastructure as Code", kicker: "Core skill", est: "50 min",
+    learn: {
+      intro: "Infrastructure as code means you define your servers, databases, and networks in version-controlled files (Terraform is the common tool) instead of clicking around a cloud console. The payoff is huge: environments become reproducible, reviewable in a pull request, and rebuildable from scratch. Platform interviews increasingly assume you think this way.",
+      points: [
+        { h: "Declarative, not imperative", p: "You describe the desired end state ('one bucket, this policy'), and the tool figures out the steps to get there. You don't write 'create this, then that.' This is why the same file run twice is safe: the tool only changes what doesn't match." },
+        { h: "Plan before apply", p: "Terraform's plan step shows you exactly what will change before anything happens: what's created, changed, or destroyed. Reading the plan is the safety gate. 'It'll destroy the database' is a lot better to learn from a plan than from production." },
+        { h: "State is the source of truth", p: "Terraform keeps a state file mapping your code to the real resources it created. Store it remotely with locking so two people can't apply at once. When reality drifts from state (someone edits by hand), plan shows the gap so you can reconcile it deliberately." },
+        { h: "Modules and variables keep it DRY", p: "A module is a reusable chunk of infrastructure with inputs and outputs. Dev, test, and prod should be the same module with different variables (size, region, name), not three copied-and-diverged folders. That's how you avoid 'works in dev, breaks in prod.'" },
+        { h: "Idempotent by design", p: "Applying the same config repeatedly converges to the same state, with no duplicate resources and no surprise churn. Idempotency is what makes infrastructure code trustworthy to run in a pipeline." }
+      ],
+      template: { lang: "HCL (Terraform)", code: "variable \"env\"    { type = string }\nvariable \"region\" { type = string }\n\nresource \"aws_s3_bucket\" \"reports\" {\n  bucket = \"acme-reports-${var.env}\"   # differs per environment\n  tags   = { Environment = var.env }\n}\n\noutput \"bucket_name\" {\n  value = aws_s3_bucket.reports.bucket  # consumed by other modules\n}\n\n# workflow:  terraform plan   (read the diff)\n#            terraform apply  (make it real, after reading)" },
+      example: { h: "The move", p: "Asked to 'stand up a staging environment,' don't script a sequence of CLI calls. Write (or reuse) a module, parameterize what differs from prod, run plan and read it, then apply. Reproducible, reviewable, and you can tear it down and rebuild it identically." }
+    },
+    practice: { type: "build", refs: ["terraform"], note: "Build a reusable module in your editor, handle the drift-and-second-environment curveball, then self-score. Adaptability = the drift reconcile and the clean second env." },
+    quiz: [
+      { q: "Why run 'terraform plan' before 'apply'?", choices: ["It's faster", "It shows exactly what will be created, changed, or destroyed before it happens", "It's required to log in", "It formats your code"], answer: 1, explain: "Plan is the safety gate: you read the diff (especially any destroys) before touching real infrastructure." },
+      { q: "Dev, test, and prod should be:", choices: ["Three separate copied folders that drift apart", "The same module with different variables", "Built by hand in the console", "One giant file"], answer: 1, explain: "One parameterized module per environment keeps them consistent and avoids 'works in dev, breaks in prod' from divergence." },
+      { q: "Someone edits a resource by hand and it no longer matches your code. This is called:", choices: ["A merge conflict", "Drift, which plan will surface so you can reconcile it", "A rollback", "A cold start"], answer: 1, explain: "Drift is when real infrastructure diverges from Terraform's state; plan detects the gap so you reconcile deliberately instead of being surprised." }
+    ],
+    recall: [
+      { front: "Declarative vs imperative infrastructure?", back: "Declarative describes the desired end state and the tool computes the steps; imperative scripts each step. Declarative is safe to re-run." },
+      { front: "What is 'plan before apply'?", back: "Terraform's plan shows exactly what will change (create/modify/destroy) before you apply. It's the safety gate." },
+      { front: "What is drift?", back: "When real infrastructure diverges from Terraform's state (e.g. a manual console edit); plan surfaces it so you reconcile deliberately." },
+      { front: "How should dev/test/prod relate?", back: "The same module with different variables, not copied folders that diverge." }
+    ]
+  },
+  {
+    id: "cicd-pipelines", track: "platform", title: "CI/CD & Deployment Pipelines", kicker: "Core skill", est: "50 min",
+    learn: {
+      intro: "A deployment pipeline takes a commit all the way to production without anyone running deploy commands by hand, and lets you undo a bad release fast. 'Design a deployment pipeline' is a signature platform interview prompt, and the strong answers are all about safe, reversible rollout, not just automation.",
+      points: [
+        { h: "CI vs CD", p: "Continuous Integration: every commit is automatically built and tested, so breakage is caught in minutes, not at release. Continuous Delivery/Deployment: that validated code flows automatically toward production. CI proves it works; CD gets it out safely." },
+        { h: "Build once, promote many", p: "Build a single immutable, versioned artifact, then promote that exact artifact through staging to prod. Rebuilding per environment means the thing you tested isn't the thing you shipped. Same bytes everywhere is the rule." },
+        { h: "Progressive delivery limits blast radius", p: "Don't flip 100% of traffic to a new version at once. Canary (send a small slice first and watch), blue-green (stand up the new version beside the old and switch), or rolling (replace instances gradually). Each limits how many users a bad release can hurt." },
+        { h: "Automated rollback tied to health", p: "The pipeline should watch health signals (error rate, latency, SLO burn) and roll back automatically when they degrade, rather than waiting for a human to notice at 2am. Fast, boring recovery beats heroic debugging." },
+        { h: "Gates block bad code", p: "Tests, linting, and security scans gate the merge; a failed gate stops promotion. The whole point is that broken or risky code can't reach prod without a human deliberately overriding a red gate." }
+      ],
+      template: null,
+      example: { h: "The move", p: "Asked to design a pipeline, start from the guarantees: what gates a merge, how you build once and promote the same artifact, how you roll out progressively, and how fast you can roll back. The rollout and rollback story is what separates a strong answer from 'and then it deploys.'" }
+    },
+    practice: { type: "build", refs: ["pipeline"], note: "Design and wire the pipeline, handle the canary-looks-fine-then-errors-climb curveball, then self-score. The rollback story is where the signal is." },
+    quiz: [
+      { q: "'Build once, promote many' means:", choices: ["Rebuild the code fresh in each environment", "Build one immutable versioned artifact and promote that exact one to prod", "Only build on Fridays", "Build twice to be safe"], answer: 1, explain: "If you rebuild per stage, the artifact you tested isn't the one you ship. Promoting the same bytes everywhere keeps testing meaningful." },
+      { q: "A canary deployment reduces risk by:", choices: ["Deploying to everyone at once but faster", "Sending a small slice of traffic to the new version first and watching health", "Skipping tests", "Deploying only at night"], answer: 1, explain: "A canary exposes a small fraction of users first, so a bad release is caught before it hits everyone. It limits blast radius." },
+      { q: "The best trigger for an automated rollback is:", choices: ["A manager's approval", "Degrading health signals like error rate or SLO burn", "A fixed timer", "The number of commits"], answer: 1, explain: "Tie rollback to health so recovery is fast and automatic, instead of waiting for a human to notice the incident." }
+    ],
+    recall: [
+      { front: "CI vs CD?", back: "CI builds and tests every commit (proves it works); CD flows validated code toward prod safely (gets it out)." },
+      { front: "Why 'build once, promote many'?", back: "Rebuilding per stage means you ship something other than what you tested. Promote the same immutable, versioned artifact everywhere." },
+      { front: "Canary vs blue-green vs rolling?", back: "Canary: small traffic slice first. Blue-green: new version beside old, then switch. Rolling: replace instances gradually. All limit blast radius." },
+      { front: "What should trigger an automated rollback?", back: "Degrading health signals (error rate, latency, SLO burn), not a human noticing at 2am." }
+    ]
+  },
+  {
+    id: "observability-slos", track: "platform", title: "Observability & SLOs", kicker: "Core skill", est: "45 min",
+    learn: {
+      intro: "You can't operate what you can't see. Observability is how you know a system is healthy, and where it hurts when it isn't. SLOs turn 'is it reliable?' from a feeling into a number you can manage and make tradeoffs against. Interviewers use this to tell operators from coders.",
+      points: [
+        { h: "Observability vs monitoring", p: "Monitoring checks the things you already knew to watch (is CPU high?). Observability is being able to ask new questions of a live system you didn't anticipate ('why is only this one customer slow?'). Modern systems fail in ways you didn't predict, so you need the latter." },
+        { h: "SLI, SLO, error budget", p: "An SLI is the measured signal (e.g. % of requests under 300ms). An SLO is the target for it (99.9% each month). The error budget is what's left: 100% minus the SLO, the failure you're allowed to spend. This is the reliability contract, in numbers." },
+        { h: "The three signals", p: "Metrics (aggregate numbers over time: rates, latencies), logs (discrete records of what happened), and traces (the path of one request across services). Together they take you from 'it's slow' to 'this call to this dependency' quickly." },
+        { h: "Alert on symptoms, not causes", p: "Page a human on user-facing pain (SLO burn, error spikes), not on every internal blip like a brief CPU spike that self-heals. An alert that doesn't require action is noise, and noise trains people to ignore the pager." },
+        { h: "The error budget is a decision tool", p: "When you're within budget, you can ship faster and take risks. When you've burned it, you slow down and harden. It turns 'ship vs stabilize' arguments into a data-driven call instead of a turf war." }
+      ],
+      template: null,
+      example: { h: "The move", p: "Asked 'how would you know this service is healthy?', don't list dashboards. Name the SLI that reflects user happiness, the SLO target, what the error budget buys you, and what single symptom you'd page on. That framing signals an operator." }
+    },
+    practice: { type: "framework", refs: ["ob-sli", "ob-slo", "ob-budget", "ob-signals", "ob-alert"], note: "Tick each stage once you can define it for a real service unaided: its SLI, its SLO, the error budget, the signals you'd instrument, and the one symptom you'd page on." },
+    quiz: [
+      { q: "An SLO (Service Level Objective) is:", choices: ["A log format", "A target for a reliability indicator over a window, e.g. 99.9% success", "A type of server", "A deployment tool"], answer: 1, explain: "The SLI is the measured signal; the SLO is the target for it over a window. It's a deliberate promise, not a hope." },
+      { q: "Your error budget is 100% minus the SLO. It's useful because:", choices: ["It has no real use", "It turns reliability into a currency you spend on shipping speed vs hardening", "It replaces testing", "It sets your salary"], answer: 1, explain: "Within budget, ship faster; out of budget, slow down and harden. It makes the ship-vs-stabilize call data-driven." },
+      { q: "You should page a human on:", choices: ["Every CPU spike", "User-facing symptoms like SLO burn or error spikes", "Every log line", "Successful deploys"], answer: 1, explain: "Alert on symptoms that need action, not internal blips that self-heal. Noisy alerts train people to ignore the pager." }
+    ],
+    recall: [
+      { front: "Observability vs monitoring?", back: "Monitoring watches known things (CPU high?); observability lets you ask new, unanticipated questions of a live system." },
+      { front: "SLI vs SLO vs error budget?", back: "SLI = measured signal; SLO = target for it over a window; error budget = 100% minus the SLO, the failure you're allowed to spend." },
+      { front: "The three observability signals?", back: "Metrics (aggregate numbers), logs (discrete events), traces (one request across services)." },
+      { front: "What should you alert (page) on?", back: "User-facing symptoms like SLO burn, not internal causes that self-heal. Actionable alerts only." }
+    ]
+  },
+  {
+    id: "incident-response", track: "platform", title: "Incident Response & On-Call", kicker: "Signature round", est: "45 min",
+    learn: {
+      intro: "The on-call / troubleshooting round drops you into a broken production system and watches how you respond. It rewards a calm, structured process over raw cleverness: restore service first, communicate steadily, then learn from it. This is where platform seniority shows most clearly.",
+      points: [
+        { h: "Mitigate before you root-cause", p: "When prod is down, the job is to stop the bleeding, not to satisfy your curiosity. Roll back the recent deploy, fail over, or flag the feature off. Restore service now; the perfect root-cause investigation happens after, in calm." },
+        { h: "Severity drives the response", p: "Set a severity fast: how many users, how badly, is data at risk? Severity decides how many people you pull in and how loudly you communicate. Over-communicating a real incident is rarely the mistake people regret." },
+        { h: "Suspect the recent change first", p: "Most incidents trace to something that just changed: a deploy, a config flip, a traffic surge. Form a hypothesis and check the timeline against recent changes before you go spelunking in code. 'What changed in the last hour?' is the fastest first question." },
+        { h: "Communicate on a cadence", p: "Stakeholders need a steady drumbeat: what's impacted, what you're doing, when the next update lands, even if the update is 'still investigating.' Silence during an outage reads as loss of control and is its own incident." },
+        { h: "Blameless postmortem", p: "Afterward, write the timeline, contributing causes, and action items. Blame the system and the gaps (missing alert, no rollback path), not the person who pushed the button. The goal is that this class of failure can't recur, and blame just makes people hide the next one." }
+      ],
+      template: null,
+      example: { h: "The move", p: "Handed 'the API is returning 500s,' don't dive straight into code. Say: I'd check what deployed recently and roll it back to mitigate, set a sev and post a status update, confirm the SLIs recover, then run a blameless postmortem. That sequence is the signal." }
+    },
+    practice: { type: "framework", refs: ["ic-detect", "ic-triage", "ic-mitigate", "ic-communicate", "ic-resolve", "ic-postmortem"], note: "Tick each stage once you can run a real outage through it unaided: detect and declare, triage severity, mitigate, communicate on a cadence, resolve and verify, then a blameless postmortem." },
+    quiz: [
+      { q: "Production is down. Your first priority is to:", choices: ["Find the exact root cause", "Mitigate and restore service (roll back, fail over, flag off)", "Write the postmortem", "Blame the last committer"], answer: 1, explain: "Stop the bleeding first. Root-cause analysis happens after service is restored, when you can think calmly." },
+      { q: "The fastest useful first question in an incident is usually:", choices: ["Who wrote this code?", "What changed recently (deploy, config, traffic)?", "Can we rewrite it?", "Is it Friday?"], answer: 1, explain: "Most incidents trace to a recent change. Checking the timeline against deploys/config is faster than reading code cold." },
+      { q: "A blameless postmortem exists to:", choices: ["Identify who to discipline", "Fix the system and gaps so the failure class can't recur", "Assign fault fairly", "Satisfy legal"], answer: 1, explain: "Blame makes people hide the next failure. Focusing on system gaps (missing alert, no rollback) is what actually prevents recurrence." }
+    ],
+    recall: [
+      { front: "First priority when prod is down?", back: "Mitigate and restore service (roll back, fail over, flag off) before hunting the root cause." },
+      { front: "Fastest first question in an incident?", back: "What changed recently? Most incidents trace to a deploy, config change, or traffic shift." },
+      { front: "Why communicate on a cadence during an outage?", back: "Stakeholders need a steady drumbeat; silence reads as loss of control and is its own incident." },
+      { front: "Point of a blameless postmortem?", back: "Fix the system and the gaps so the failure class can't recur; blame just makes people hide the next one." }
     ]
   },
   {
