@@ -423,18 +423,35 @@
     wireStepNav(m, "practice");
   }
 
+  function coderLangs(prob) {
+    var langs = ["js", "py"];
+    if (window.PGJudge && PGJudge.enabled && PGJudge.enabled()) {
+      (PGJudge.remoteLangsFor(prob) || []).forEach(function (id) { langs.push(id); });
+    }
+    return langs;
+  }
+  function langLabel(id) { return id === "js" ? "JavaScript" : id === "py" ? "Python" : (window.PGJudge ? PGJudge.label(id) : id); }
+  function langStarter(prob, id) { return id === "js" ? prob.starter : id === "py" ? prob.starterPy : PGJudge.starter(prob, id); }
+  function langSolution(prob, id) { return id === "js" ? prob.solution : id === "py" ? prob.solutionPy : PGJudge.solution(prob, id); }
+
   function mountCoder(container, prob, opts) {
     opts = opts || {};
-    var lang = state.lang === "py" ? "py" : "js";
-    var starter = lang === "py" ? prob.starterPy : prob.starter;
-    var solution = lang === "py" ? prob.solutionPy : prob.solution;
+    var langs = coderLangs(prob);
+    var lang = langs.indexOf(state.lang) !== -1 ? state.lang : "js";
+    var remote = lang !== "js" && lang !== "py";
+    var starter = langStarter(prob, lang);
+    var solution = langSolution(prob, lang);
     var codeKey = lang + ":" + prob.id;
     var saved = state.code[codeKey] || starter;
     container.className = "coder";
+    var toggle = langs.map(function (id) {
+      return '<button class="lang-opt' + (id === lang ? " on" : "") + '" data-lang="' + id + '">' + esc(langLabel(id)) + '</button>';
+    }).join("");
     container.innerHTML =
       '<div class="coder-head"><span class="coder-title">' + esc(prob.title) + ' <span class="chip-diff">' + esc(prob.difficulty) + '</span> <span class="chip-pat">' + esc(prob.pattern) + '</span></span>' +
-      '<span class="lang-toggle"><button class="lang-opt' + (lang === "js" ? " on" : "") + '" data-lang="js">JavaScript</button><button class="lang-opt' + (lang === "py" ? " on" : "") + '" data-lang="py">Python</button></span></div>' +
+      '<span class="lang-toggle">' + toggle + '</span></div>' +
       '<p class="coder-prompt">' + esc(prob.prompt) + '</p>' +
+      (remote ? '<p class="coder-remote">Compiled and run on the code judge.</p>' : '') +
       '<textarea class="coder-editor" spellcheck="false">' + esc(saved) + '</textarea>' +
       '<div class="coder-actions"><button class="btn btn-primary c-run">Run tests</button><button class="btn btn-ghost c-reset">Reset</button>' +
       (opts.showSolution ? '<button class="btn btn-ghost c-sol">Show solution</button>' : '') +
@@ -453,14 +470,16 @@
     ta.addEventListener("input", function () { state.code[codeKey] = ta.value; save(); });
     container.querySelector(".c-run").addEventListener("click", function () {
       results.innerHTML = "";
-      status.textContent = (lang === "py" && !_pyReady) ? "Loading Python (first run, a few seconds)..." : "Running...";
+      status.textContent = remote ? "Compiling and running on the judge..." : (lang === "py" && !_pyReady) ? "Loading Python (first run, a few seconds)..." : "Running...";
       status.className = "coder-status";
-      var runner = lang === "py" ? runPythonProblem : runProblem;
-      runner(prob, ta.value, function (data) {
+      function done(data) {
         var allPass = data.results && data.results.length && data.results.every(function (r) { return r.pass; });
         renderResults(results, status, data);
         if (allPass && opts.onPass) opts.onPass();
-      });
+      }
+      if (remote) PGJudge.run(prob, lang, ta.value, done);
+      else if (lang === "py") runPythonProblem(prob, ta.value, done);
+      else runProblem(prob, ta.value, done);
     });
     container.querySelector(".c-reset").addEventListener("click", function () { ta.value = starter; state.code[codeKey] = starter; save(); results.innerHTML = ""; status.textContent = ""; });
     if (opts.showSolution) container.querySelector(".c-sol").addEventListener("click", function () { ta.value = solution; state.code[codeKey] = solution; save(); });

@@ -1,0 +1,86 @@
+# Proving Ground code judge - Judge0 behind Caddy, for one dedicated Hetzner box.
+#
+# Judge0 runs untrusted compiled code, so treat this host as disposable and
+# keep nothing sensitive on it. The Judge0 API is NOT published to the host;
+# only Caddy is public (80/443). Caddy terminates TLS, enforces CORS to your
+# app origin, rate-limits per IP, and injects the auth token Judge0 requires,
+# so the browser never holds a secret and the API can't be hit directly.
+#
+# See RUNBOOK.md for full setup. Pinned to Judge0 1.13.1 (needs cgroup v1 -
+# the runbook has the one-line GRUB change).
+
+x-logging: &default-logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  caddy:
+    build: ./caddy            # Caddy + rate-limit plugin (see caddy/Dockerfile)
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      JUDGE_DOMAIN: ${JUDGE_DOMAIN}
+      APP_ORIGIN: ${APP_ORIGIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      JUDGE0_AUTH_TOKEN: ${JUDGE0_AUTH_TOKEN}
+      RATE_EVENTS: ${RATE_EVENTS:-40}
+      RATE_WINDOW: ${RATE_WINDOW:-60s}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    restart: always
+    <<: *default-logging
+
+  server:
+    image: judge0/judge0:1.13.1
+    # NOTE: no host port mapping on purpose - only reachable from Caddy on the
+    # internal compose network at http://server:2358
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true            # required by the isolate sandbox
+    restart: always
+    <<: *default-logging
+
+  workers:
+    image: judge0/judge0:1.13.1
+    command: ["./scripts/workers"]
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    restart: always
+    <<: *default-logging
+
+  db:
+    image: postgres:13
+    env_file: judge0.conf
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+    restart: always
+    <<: *default-logging
+
+  redis:
+    image: redis:7
+    command:
+      [
+        "bash",
+        "-c",
+        'docker-entrypoint.sh --appendonly yes --requirepass "$$REDIS_PASSWORD"',
+      ]
+    env_file: judge0.conf
+    volumes:
+      - redis-data:/data
+    restart: always
+    <<: *default-logging
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:

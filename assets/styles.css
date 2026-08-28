@@ -421,7 +421,8 @@ table.sql-table tbody tr:last-child td { border-bottom: none; }
 .sql-empty { color: var(--muted); font-style: italic; }
 
 /* ---------- language toggle ---------- */
-.lang-toggle { display: inline-flex; gap: 2px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; flex-shrink: 0; }
+.lang-toggle { display: inline-flex; flex-wrap: wrap; gap: 2px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.coder-remote { padding: 8px 18px 0; margin: 0; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.02em; color: var(--ember-deep); }
 .lang-opt { border: none; background: transparent; font-family: var(--mono); font-size: 0.7rem; font-weight: 600; color: var(--sec); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
 .lang-opt.on { background: var(--ink); color: #fff; }
 .lang-opt:hover:not(.on) { color: var(--ink); }

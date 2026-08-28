@@ -1,0 +1,43 @@
+# Public edge for the code judge. Terminates TLS, restricts CORS to the app
+# origin, rate-limits per IP, and injects the Judge0 auth token server-side so
+# the browser never holds it and Judge0 is never reachable directly.
+
+{
+	email {$ACME_EMAIL}
+	order rate_limit before reverse_proxy
+}
+
+{$JUDGE_DOMAIN} {
+	# --- CORS: allow only your app origin ---
+	@cors_preflight method OPTIONS
+	header {
+		Access-Control-Allow-Origin "{$APP_ORIGIN}"
+		Access-Control-Allow-Methods "GET, POST, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type"
+		Access-Control-Max-Age "86400"
+		Vary "Origin"
+		-Server
+	}
+	respond @cors_preflight 204
+
+	# --- Per-IP rate limit (abuse / DoS guard) ---
+	rate_limit {
+		zone judge {
+			key {remote_host}
+			events {$RATE_EVENTS}
+			window {$RATE_WINDOW}
+		}
+	}
+
+	# --- Proxy to the internal Judge0 API, injecting the auth token ---
+	reverse_proxy server:2358 {
+		header_up X-Auth-Token "{$JUDGE0_AUTH_TOKEN}"
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}

@@ -28,7 +28,31 @@ var PROBLEMS = [
     ],
     solution: "function twoSum(nums, target) {\n  const seen = {};\n  for (let i = 0; i < nums.length; i++) {\n    const need = target - nums[i];\n    if (need in seen) return [seen[need], i];\n    seen[nums[i]] = i;\n  }\n}",
     starterPy: "def twoSum(nums, target):\n    # return [i, j] with i < j\n    pass",
-    solutionPy: "def twoSum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        need = target - n\n        if need in seen:\n            return [seen[need], i]\n        seen[n] = i"
+    solutionPy: "def twoSum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        need = target - n\n        if need in seen:\n            return [seen[need], i]\n        seen[n] = i",
+    sig: { params: ["int[]", "int"], ret: "int[]" },
+    code: {
+      java: {
+        starter: "class Solution {\n  int[] twoSum(int[] nums, int target) {\n    // return [i, j] with i < j\n    return new int[]{};\n  }\n}",
+        solution: "class Solution {\n  int[] twoSum(int[] nums, int target) {\n    Map<Integer,Integer> seen = new HashMap<>();\n    for (int i = 0; i < nums.length; i++) {\n      int need = target - nums[i];\n      if (seen.containsKey(need)) return new int[]{seen.get(need), i};\n      seen.put(nums[i], i);\n    }\n    return new int[]{};\n  }\n}"
+      },
+      csharp: {
+        starter: "public class Solution {\n  public int[] twoSum(int[] nums, int target) {\n    // return [i, j] with i < j\n    return new int[]{};\n  }\n}",
+        solution: "public class Solution {\n  public int[] twoSum(int[] nums, int target) {\n    var seen = new System.Collections.Generic.Dictionary<int,int>();\n    for (int i = 0; i < nums.Length; i++) {\n      int need = target - nums[i];\n      if (seen.ContainsKey(need)) return new int[]{seen[need], i};\n      seen[nums[i]] = i;\n    }\n    return new int[]{};\n  }\n}"
+      },
+      cpp: {
+        starter: "vector<int> twoSum(vector<int> nums, int target) {\n  // return {i, j} with i < j\n  return {};\n}",
+        solution: "vector<int> twoSum(vector<int> nums, int target) {\n  unordered_map<int,int> seen;\n  for (int i = 0; i < (int)nums.size(); i++) {\n    int need = target - nums[i];\n    if (seen.count(need)) return {seen[need], i};\n    seen[nums[i]] = i;\n  }\n  return {};\n}"
+      },
+      go: {
+        starter: "func twoSum(nums []int, target int) []int {\n\t// return [i, j] with i < j\n\treturn []int{}\n}",
+        solution: "func twoSum(nums []int, target int) []int {\n\tseen := map[int]int{}\n\tfor i, n := range nums {\n\t\tif j, ok := seen[target-n]; ok {\n\t\t\treturn []int{j, i}\n\t\t}\n\t\tseen[n] = i\n\t}\n\treturn []int{}\n}"
+      },
+      rust: {
+        fn: "two_sum",
+        starter: "fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\n    // return vec![i, j] with i < j\n    vec![]\n}",
+        solution: "fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\n    use std::collections::HashMap;\n    let mut seen: HashMap<i32, i32> = HashMap::new();\n    for (i, &n) in nums.iter().enumerate() {\n        if let Some(&j) = seen.get(&(target - n)) {\n            return vec![j, i as i32];\n        }\n        seen.insert(n, i as i32);\n    }\n    vec![]\n}"
+      }
+    }
   },
   {
     id: "valid-palindrome", title: "Valid Palindrome", difficulty: "Easy", pattern: "Two Pointers",
@@ -43,7 +67,31 @@ var PROBLEMS = [
     ],
     solution: "function isPalindrome(s) {\n  const t = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let i = 0, j = t.length - 1;\n  while (i < j) { if (t[i] !== t[j]) return false; i++; j--; }\n  return true;\n}",
     starterPy: "def isPalindrome(s):\n    # return True or False\n    pass",
-    solutionPy: "def isPalindrome(s):\n    t = [c.lower() for c in s if c.isalnum()]\n    return t == t[::-1]"
+    solutionPy: "def isPalindrome(s):\n    t = [c.lower() for c in s if c.isalnum()]\n    return t == t[::-1]",
+    sig: { params: ["string"], ret: "bool" },
+    code: {
+      java: {
+        starter: "class Solution {\n  boolean isPalindrome(String s) {\n    // return true or false\n    return true;\n  }\n}",
+        solution: "class Solution {\n  boolean isPalindrome(String s) {\n    int i = 0, j = s.length() - 1;\n    while (i < j) {\n      while (i < j && !Character.isLetterOrDigit(s.charAt(i))) i++;\n      while (i < j && !Character.isLetterOrDigit(s.charAt(j))) j--;\n      if (Character.toLowerCase(s.charAt(i)) != Character.toLowerCase(s.charAt(j))) return false;\n      i++; j--;\n    }\n    return true;\n  }\n}"
+      },
+      csharp: {
+        starter: "public class Solution {\n  public bool isPalindrome(string s) {\n    // return true or false\n    return true;\n  }\n}",
+        solution: "public class Solution {\n  public bool isPalindrome(string s) {\n    int i = 0, j = s.Length - 1;\n    while (i < j) {\n      while (i < j && !char.IsLetterOrDigit(s[i])) i++;\n      while (i < j && !char.IsLetterOrDigit(s[j])) j--;\n      if (char.ToLower(s[i]) != char.ToLower(s[j])) return false;\n      i++; j--;\n    }\n    return true;\n  }\n}"
+      },
+      cpp: {
+        starter: "bool isPalindrome(string s) {\n  // return true or false\n  return true;\n}",
+        solution: "bool isPalindrome(string s) {\n  int i = 0, j = (int)s.size() - 1;\n  while (i < j) {\n    while (i < j && !isalnum((unsigned char)s[i])) i++;\n    while (i < j && !isalnum((unsigned char)s[j])) j--;\n    if (tolower((unsigned char)s[i]) != tolower((unsigned char)s[j])) return false;\n    i++; j--;\n  }\n  return true;\n}"
+      },
+      go: {
+        starter: "func isPalindrome(s string) bool {\n\t// return true or false\n\treturn true\n}",
+        solution: "func isPalindrome(s string) bool {\n\tr := []rune(s)\n\ti, j := 0, len(r)-1\n\tisAlnum := func(c rune) bool { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') }\n\tlower := func(c rune) rune { if c >= 'A' && c <= 'Z' { return c + 32 }; return c }\n\tfor i < j {\n\t\tfor i < j && !isAlnum(r[i]) { i++ }\n\t\tfor i < j && !isAlnum(r[j]) { j-- }\n\t\tif lower(r[i]) != lower(r[j]) { return false }\n\t\ti++; j--\n\t}\n\treturn true\n}"
+      },
+      rust: {
+        fn: "is_palindrome",
+        starter: "fn is_palindrome(s: String) -> bool {\n    // return true or false\n    true\n}",
+        solution: "fn is_palindrome(s: String) -> bool {\n    let v: Vec<char> = s.chars().filter(|c| c.is_alphanumeric()).map(|c| c.to_ascii_lowercase()).collect();\n    if v.is_empty() { return true; }\n    let (mut i, mut j) = (0usize, v.len() - 1);\n    while i < j {\n        if v[i] != v[j] { return false; }\n        i += 1; j -= 1;\n    }\n    true\n}"
+      }
+    }
   },
   {
     id: "max-profit", title: "Best Time to Buy and Sell Stock", difficulty: "Easy", pattern: "Sliding Window / Greedy",
@@ -103,7 +151,30 @@ var PROBLEMS = [
     ],
     solution: "function search(nums, target) {\n  let lo = 0, hi = nums.length - 1;\n  while (lo <= hi) {\n    const mid = (lo + hi) >> 1;\n    if (nums[mid] === target) return mid;\n    if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n  }\n  return -1;\n}",
     starterPy: "def search(nums, target):\n    # return the index or -1\n    pass",
-    solutionPy: "def search(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1"
+    solutionPy: "def search(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1",
+    sig: { params: ["int[]", "int"], ret: "int" },
+    code: {
+      java: {
+        starter: "class Solution {\n  int search(int[] nums, int target) {\n    // return the index or -1\n    return -1;\n  }\n}",
+        solution: "class Solution {\n  int search(int[] nums, int target) {\n    int lo = 0, hi = nums.length - 1;\n    while (lo <= hi) {\n      int mid = (lo + hi) >>> 1;\n      if (nums[mid] == target) return mid;\n      if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n    }\n    return -1;\n  }\n}"
+      },
+      csharp: {
+        starter: "public class Solution {\n  public int search(int[] nums, int target) {\n    // return the index or -1\n    return -1;\n  }\n}",
+        solution: "public class Solution {\n  public int search(int[] nums, int target) {\n    int lo = 0, hi = nums.Length - 1;\n    while (lo <= hi) {\n      int mid = (lo + hi) / 2;\n      if (nums[mid] == target) return mid;\n      if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n    }\n    return -1;\n  }\n}"
+      },
+      cpp: {
+        starter: "int search(vector<int> nums, int target) {\n  // return the index or -1\n  return -1;\n}",
+        solution: "int search(vector<int> nums, int target) {\n  int lo = 0, hi = (int)nums.size() - 1;\n  while (lo <= hi) {\n    int mid = (lo + hi) / 2;\n    if (nums[mid] == target) return mid;\n    if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n  }\n  return -1;\n}"
+      },
+      go: {
+        starter: "func search(nums []int, target int) int {\n\t// return the index or -1\n\treturn -1\n}",
+        solution: "func search(nums []int, target int) int {\n\tlo, hi := 0, len(nums)-1\n\tfor lo <= hi {\n\t\tmid := (lo + hi) / 2\n\t\tif nums[mid] == target {\n\t\t\treturn mid\n\t\t}\n\t\tif nums[mid] < target {\n\t\t\tlo = mid + 1\n\t\t} else {\n\t\t\thi = mid - 1\n\t\t}\n\t}\n\treturn -1\n}"
+      },
+      rust: {
+        starter: "fn search(nums: Vec<i32>, target: i32) -> i32 {\n    // return the index or -1\n    -1\n}",
+        solution: "fn search(nums: Vec<i32>, target: i32) -> i32 {\n    let (mut lo, mut hi) = (0i32, nums.len() as i32 - 1);\n    while lo <= hi {\n        let mid = (lo + hi) / 2;\n        let v = nums[mid as usize];\n        if v == target { return mid; }\n        if v < target { lo = mid + 1; } else { hi = mid - 1; }\n    }\n    -1\n}"
+      }
+    }
   },
   {
     id: "valid-anagram", title: "Valid Anagram", difficulty: "Easy", pattern: "Hashing",
