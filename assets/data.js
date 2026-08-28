@@ -4,11 +4,13 @@
 
 /* ===================== TRACKS ===================== */
 var TRACKS = [
+  { id: "foundations", name: "Foundations", short: "Basics", blurb: "New to this? Start here. The assumed knowledge - Big-O, arrays, loops, and hashing - explained from zero, so the rest of the app actually makes sense." },
   { id: "dsa", name: "Algorithms & Data Structures", short: "DSA", blurb: "The LeetCode-style pattern round. Recognize the pattern, then implement it under time pressure." },
   { id: "fde", name: "Forward Deployed", short: "FDE", blurb: "Decomposition under ambiguity, practical builds, and customer framing  - the loop AI companies actually run." },
   { id: "platform", name: "Platform & Cloud", short: "Platform", blurb: "Applied system design, reliability, and infrastructure. Pragmatic design over algorithm puzzles." },
   { id: "ai", name: "Applied AI", short: "AI", blurb: "RAG, agents, and evals  - the emerging applied-AI interview, still forming." },
-  { id: "data-eng", name: "Data Engineering", short: "Data", blurb: "SQL, pipelines, and modeling. The data-plumbing loop, with a sensor and meter-data slant that fits energy and water companies." }
+  { id: "data-eng", name: "Data Engineering", short: "Data", blurb: "SQL, pipelines, and modeling. The data-plumbing loop, with a sensor and meter-data slant that fits energy and water companies." },
+  { id: "data-sci", name: "Data Science & ML", short: "DS/ML", blurb: "Statistics, data wrangling, machine learning, and model evaluation - including the time-series forecasting behind energy and water analytics." }
 ];
 
 /* ===================== CODING PROBLEM BANK ===================== */
@@ -117,6 +119,86 @@ var PROBLEMS = [
     solution: "function isAnagram(s, t) {\n  if (s.length !== t.length) return false;\n  const c = {};\n  for (const ch of s) c[ch] = (c[ch] || 0) + 1;\n  for (const ch of t) { if (!c[ch]) return false; c[ch]--; }\n  return true;\n}",
     starterPy: "def isAnagram(s, t):\n    # return True or False\n    pass",
     solutionPy: "def isAnagram(s, t):\n    from collections import Counter\n    return Counter(s) == Counter(t)"
+  },
+  {
+    id: "sum-array", title: "Sum an Array", difficulty: "Intro", pattern: "Loops · O(n)",
+    prompt: "Return the sum of all the numbers in nums. An empty array sums to 0. You visit each of the n items once, which is what makes this O(n).",
+    fnName: "sumArray",
+    starter: "function sumArray(nums) {\n  // add up every number and return the total\n\n}",
+    tests: [{ args: [[1, 2, 3]], expected: 6 }, { args: [[]], expected: 0 }, { args: [[5]], expected: 5 }, { args: [[-1, 1]], expected: 0 }],
+    solution: "function sumArray(nums) {\n  let total = 0;\n  for (const n of nums) total += n;\n  return total;\n}",
+    starterPy: "def sumArray(nums):\n    # add up every number and return the total\n    pass",
+    solutionPy: "def sumArray(nums):\n    total = 0\n    for n in nums:\n        total += n\n    return total"
+  },
+  {
+    id: "last-element", title: "Last Element", difficulty: "Intro", pattern: "Indexing · O(1)",
+    prompt: "Return the last item in nums, or null if nums is empty. For n items the last index is n-1, because indexes start at 0. Jumping straight to an index is O(1).",
+    fnName: "lastElement",
+    starter: "function lastElement(nums) {\n  // return the last item, or null if empty\n\n}",
+    tests: [{ args: [[1, 2, 3]], expected: 3 }, { args: [[9]], expected: 9 }, { args: [["a", "b"]], expected: "b" }, { args: [[]], expected: null }],
+    solution: "function lastElement(nums) {\n  return nums.length ? nums[nums.length - 1] : null;\n}",
+    starterPy: "def lastElement(nums):\n    # return the last item, or None if empty\n    pass",
+    solutionPy: "def lastElement(nums):\n    return nums[len(nums) - 1] if nums else None"
+  },
+  {
+    id: "count-positives", title: "Count Positives", difficulty: "Intro", pattern: "Loops · O(n)",
+    prompt: "Return how many numbers in nums are greater than 0. Loop through once and keep a counter - a classic O(n) scan.",
+    fnName: "countPositives",
+    starter: "function countPositives(nums) {\n  // count how many numbers are greater than 0\n\n}",
+    tests: [{ args: [[-1, 2, -3, 4]], expected: 2 }, { args: [[1, 2, 3]], expected: 3 }, { args: [[-1, -2]], expected: 0 }, { args: [[]], expected: 0 }],
+    solution: "function countPositives(nums) {\n  let count = 0;\n  for (const n of nums) if (n > 0) count++;\n  return count;\n}",
+    starterPy: "def countPositives(nums):\n    # count how many numbers are greater than 0\n    pass",
+    solutionPy: "def countPositives(nums):\n    count = 0\n    for n in nums:\n        if n > 0:\n            count += 1\n    return count"
+  },
+  {
+    id: "mean", title: "Mean (Average)", difficulty: "Easy", pattern: "Statistics",
+    prompt: "Return the mean (average) of nums: the sum divided by how many numbers there are. Assume nums has at least one number.",
+    fnName: "mean",
+    starter: "function mean(nums) {\n  // return the average\n\n}",
+    tests: [{ args: [[1, 2, 3]], expected: 2 }, { args: [[2, 4]], expected: 3 }, { args: [[1, 2]], expected: 1.5 }, { args: [[10]], expected: 10 }],
+    solution: "function mean(nums) {\n  let sum = 0;\n  for (const n of nums) sum += n;\n  return sum / nums.length;\n}",
+    starterPy: "def mean(nums):\n    # return the average\n    pass",
+    solutionPy: "def mean(nums):\n    return sum(nums) / len(nums)"
+  },
+  {
+    id: "median", title: "Median", difficulty: "Easy", pattern: "Statistics",
+    prompt: "Return the median of nums: the middle value after sorting. If the count is even, return the average of the two middle values.",
+    fnName: "median",
+    starter: "function median(nums) {\n  // sort, then return the middle (or the average of the two middle values)\n\n}",
+    tests: [{ args: [[3, 1, 2]], expected: 2 }, { args: [[1, 2, 3, 4]], expected: 2.5 }, { args: [[5]], expected: 5 }, { args: [[4, 1, 2, 3]], expected: 2.5 }],
+    solution: "function median(nums) {\n  const a = [...nums].sort((x, y) => x - y);\n  const m = Math.floor(a.length / 2);\n  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;\n}",
+    starterPy: "def median(nums):\n    # sort, then return the middle (or the average of the two middle values)\n    pass",
+    solutionPy: "def median(nums):\n    a = sorted(nums)\n    m = len(a) // 2\n    if len(a) % 2:\n        return a[m]\n    return (a[m - 1] + a[m]) / 2"
+  },
+  {
+    id: "moving-average", title: "Moving Average", difficulty: "Easy", pattern: "Time series",
+    prompt: "Return the moving average of nums over a window of size k: the average of each group of k consecutive values, left to right. Example: [1,2,3,4] with k=2 gives [1.5, 2.5, 3.5]. This is how you smooth noisy sensor or demand data.",
+    fnName: "movingAverage",
+    starter: "function movingAverage(nums, k) {\n  // average of each consecutive window of size k\n\n}",
+    tests: [{ args: [[1, 2, 3, 4], 2], expected: [1.5, 2.5, 3.5] }, { args: [[2, 4, 6], 3], expected: [4] }, { args: [[1, 2, 3], 1], expected: [1, 2, 3] }, { args: [[10, 20], 2], expected: [15] }],
+    solution: "function movingAverage(nums, k) {\n  const res = [];\n  for (let i = 0; i + k <= nums.length; i++) {\n    let s = 0;\n    for (let j = i; j < i + k; j++) s += nums[j];\n    res.push(s / k);\n  }\n  return res;\n}",
+    starterPy: "def movingAverage(nums, k):\n    # average of each consecutive window of size k\n    pass",
+    solutionPy: "def movingAverage(nums, k):\n    res = []\n    for i in range(len(nums) - k + 1):\n        res.append(sum(nums[i:i+k]) / k)\n    return res"
+  },
+  {
+    id: "rmse", title: "RMSE (Forecast Error)", difficulty: "Easy", pattern: "Model evaluation",
+    prompt: "Return the Root Mean Squared Error between actual and predicted (same length): the square root of the average of the squared differences. RMSE is the standard score for how far off a forecast is.",
+    fnName: "rmse",
+    starter: "function rmse(actual, predicted) {\n  // sqrt of the mean of the squared differences\n\n}",
+    tests: [{ args: [[1, 2, 3], [1, 2, 3]], expected: 0 }, { args: [[2, 2], [5, 5]], expected: 3 }, { args: [[0, 0, 0], [2, 2, 2]], expected: 2 }, { args: [[10], [13]], expected: 3 }],
+    solution: "function rmse(actual, predicted) {\n  let s = 0;\n  for (let i = 0; i < actual.length; i++) {\n    const d = actual[i] - predicted[i];\n    s += d * d;\n  }\n  return Math.sqrt(s / actual.length);\n}",
+    starterPy: "def rmse(actual, predicted):\n    import math\n    # sqrt of the mean of the squared differences\n    pass",
+    solutionPy: "def rmse(actual, predicted):\n    import math\n    s = 0\n    for a, p in zip(actual, predicted):\n        s += (a - p) ** 2\n    return math.sqrt(s / len(actual))"
+  },
+  {
+    id: "accuracy", title: "Accuracy", difficulty: "Easy", pattern: "Model evaluation",
+    prompt: "Return the accuracy: the fraction of predictions that match the labels (same length). Example: 3 of 4 correct gives 0.75.",
+    fnName: "accuracy",
+    starter: "function accuracy(predictions, labels) {\n  // fraction of predictions that equal the label\n\n}",
+    tests: [{ args: [[1, 0, 1], [1, 0, 1]], expected: 1 }, { args: [[1, 1], [0, 0]], expected: 0 }, { args: [[1, 0, 1, 1], [1, 0, 0, 1]], expected: 0.75 }, { args: [[1], [1]], expected: 1 }],
+    solution: "function accuracy(predictions, labels) {\n  let c = 0;\n  for (let i = 0; i < predictions.length; i++) if (predictions[i] === labels[i]) c++;\n  return c / predictions.length;\n}",
+    starterPy: "def accuracy(predictions, labels):\n    # fraction of predictions that equal the label\n    pass",
+    solutionPy: "def accuracy(predictions, labels):\n    c = 0\n    for p, l in zip(predictions, labels):\n        if p == l:\n            c += 1\n    return c / len(predictions)"
   }
 ];
 
@@ -548,6 +630,223 @@ var MODULES = [
     recall: [
       { front: "Handle duplicate or re-sent records?", back: "Deduplicate on a natural key; window on event time, not arrival time." },
       { front: "SCD type 1 vs type 2?", back: "Type 1 overwrites (no history); type 2 adds a versioned row (keeps history)." }
+    ]
+  },
+  /* ---------- FOUNDATIONS ---------- */
+  {
+    id: "read-big-o", track: "foundations", title: "Reading Big-O Notation", kicker: "Start here", est: "40 min",
+    learn: {
+      intro: "Every time this app says something runs in 'O(n) time,' it is describing how the work grows as the input gets bigger. This is the single most assumed idea in interviews, and almost nobody teaches it plainly. So let's make it concrete.",
+      points: [
+        { h: "What is n?", p: "n just means the size of the input, usually how many items are in the list. If a list has 10 numbers, n is 10; if it has a million, n is a million. Big-O describes how the work scales as n grows." },
+        { h: "How to read the common ones", p: "O(1) = constant: the same tiny amount of work no matter how big n is (like grabbing the first item). O(n) = linear: work grows in step with n (double the items, double the work, like adding them all up). O(log n) = grows very slowly (each step throws away half the data, like binary search). O(n^2) = quadratic: work explodes (a loop inside a loop)." },
+        { h: "Time vs space", p: "'O(n) time' is how many steps it takes. 'O(1) space' is how much extra memory it uses. 'In place' means O(1) space: you don't build a second copy. Interviewers care about both." },
+        { h: "Why they ask", p: "They want to know your code still works when n is huge. An O(n) solution handles a million items fine; an O(n^2) one might take forever. Saying the complexity out loud shows you can reason about that." }
+      ],
+      template: { lang: "JavaScript", code: "// O(1): one step, no matter how big nums is\nreturn nums[0];\n\n// O(n): touches every item once\nlet total = 0;\nfor (const x of nums) total += x;\n\n// O(n^2): a loop inside a loop -> n times n steps\nfor (const a of nums)\n  for (const b of nums)\n    /* compare a and b */;" },
+      example: { h: "n-1 and counting from 0", p: "Lists are 0-indexed: the first item is at index 0, so a list of n items has its last item at index n-1. That is why you'll see nums[n-1] for the last element. It is not a typo, it is the last slot." }
+    },
+    practice: { type: "code", refs: ["sum-array", "last-element"], note: "Solve both, then notice: summing touches every item (O(n)), but grabbing the last item is one step (O(1)). Same array, very different cost." },
+    quiz: [
+      { q: "In Big-O, what does 'n' usually mean?", choices: ["The answer to the problem", "The size of the input (e.g. number of items)", "The number of lines of code", "A random variable"], answer: 1, explain: "n is the input size. Big-O describes how the work grows as n grows." },
+      { q: "A single loop that touches every item in a list of n items is:", choices: ["O(1)", "O(n)", "O(n^2)", "O(log n)"], answer: 1, explain: "One pass over n items is linear time, O(n). Double the items, double the work." },
+      { q: "For a 0-indexed list of n items, the last item is at index:", choices: ["n", "n-1", "1", "0"], answer: 1, explain: "Indexes start at 0, so the last of n items sits at index n-1." },
+      { code: "sum-array" }
+    ],
+    recall: [
+      { front: "What does O(n) mean in plain words?", back: "Work grows in step with the input size n: double the items, double the work (a single pass)." },
+      { front: "What does O(1) mean?", back: "Constant work: the same tiny cost no matter how big the input is (e.g. reading one index)." },
+      { front: "'In place' / O(1) space means?", back: "You don't build a second copy; you use a fixed, small amount of extra memory." },
+      { front: "Last index of a 0-indexed list of n items?", back: "n-1 (indexes start at 0)." }
+    ]
+  },
+  {
+    id: "arrays-indexing", track: "foundations", title: "Arrays & Indexing", kicker: "Start here", est: "35 min",
+    learn: {
+      intro: "An array (or list) is just an ordered row of items. Almost every problem starts with one, so it is worth being crystal clear on how they work.",
+      points: [
+        { h: "What an array is", p: "An ordered sequence of items, each in a numbered slot. [10, 20, 30] has three items. Order matters and is preserved." },
+        { h: "Indexes start at 0", p: "The position of an item is its index, and indexes start at 0. In [10, 20, 30], index 0 is 10, index 1 is 20, index 2 is 30. So the length is 3 but the last index is 2 (that is n-1)." },
+        { h: "What's fast, what's not", p: "Jumping to an item by its index is instant, O(1): the computer knows exactly where it is. But searching for a value when you don't know its index means scanning, O(n)." }
+      ],
+      template: { lang: "JavaScript", code: "const nums = [10, 20, 30];\nnums[0];                // 10  (first item)\nnums[nums.length - 1];  // 30  (last item, index n-1)\nnums.length;            // 3   (how many items = n)" },
+      example: null
+    },
+    practice: { type: "code", refs: ["last-element", "count-positives"], note: "Last Element makes n-1 concrete; Count Positives is your first real scan across every index." },
+    quiz: [
+      { q: "In the array [7, 8, 9], what is at index 1?", choices: ["7", "8", "9", "nothing"], answer: 1, explain: "Index 0 is 7, index 1 is 8, index 2 is 9. Indexing starts at 0." },
+      { q: "Reading nums[i] when you already know i is:", choices: ["O(n), you have to search", "O(1), instant", "impossible", "O(n^2)"], answer: 1, explain: "Direct index access is constant time; the computer jumps straight to that slot." },
+      { code: "last-element" }
+    ],
+    recall: [
+      { front: "What index is the first item of an array?", back: "0. Arrays are 0-indexed." },
+      { front: "Length vs last index?", back: "A list of n items has length n but its last index is n-1." },
+      { front: "Cost of reading nums[i] vs searching for a value?", back: "Reading a known index is O(1); searching for a value is O(n)." }
+    ]
+  },
+  {
+    id: "loops-iteration", track: "foundations", title: "Loops & Iteration", kicker: "Start here", est: "40 min",
+    learn: {
+      intro: "A loop is how you do something to every item without writing it out by hand. Once you are comfortable looping, most 'scan the array' problems become easy.",
+      points: [
+        { h: "What a loop does", p: "It repeats a block of code, usually once per item. 'For each number in the list, add it to a total' is a loop. Looping over n items is O(n)." },
+        { h: "The counter / accumulator pattern", p: "Keep a variable (a count or a running total) outside the loop, update it each time through, and return it at the end. This one pattern solves a huge share of beginner problems." },
+        { h: "Iterating by value vs by index", p: "You can loop by value ('for each n in nums') or by index ('for i from 0 to n-1, use nums[i]'). Index loops matter when you need the position, or two positions at once, which is the Two Pointers idea." }
+      ],
+      template: { lang: "JavaScript", code: "// by value\nlet total = 0;\nfor (const n of nums) total += n;\n\n// by index (gives you the position i, 0 through n-1)\nfor (let i = 0; i < nums.length; i++) {\n  // nums[i] is the current item, i is its index\n}" },
+      example: null
+    },
+    practice: { type: "code", refs: ["count-positives", "sum-array"], note: "Both use the counter/accumulator pattern: start a variable, update it each pass, return it at the end." },
+    quiz: [
+      { q: "To count how many items meet a condition, you:", choices: ["Sort the array", "Keep a counter and add 1 each time the condition is true", "Use recursion only", "Reverse the array"], answer: 1, explain: "A counter you increment inside the loop is the standard O(n) approach." },
+      { q: "'for (let i = 0; i < nums.length; i++)' loops i over:", choices: ["1 to n", "0 to n-1", "just the last item", "random indexes"], answer: 1, explain: "It starts at 0 and stops before length, so i covers every valid index, 0 through n-1." },
+      { code: "count-positives" }
+    ],
+    recall: [
+      { front: "The counter / accumulator pattern?", back: "Keep a variable outside the loop, update it each pass, return it at the end." },
+      { front: "Why loop by index instead of by value?", back: "When you need the position i, or two positions at once (the Two Pointers idea)." }
+    ]
+  },
+  {
+    id: "hashmaps-sets", track: "foundations", title: "Hash Maps & Sets", kicker: "Start here", est: "45 min",
+    learn: {
+      intro: "A hash map and a set are the two tools that most often turn a slow O(n^2) solution into a fast O(n) one. Knowing when to reach for them is a big interview edge.",
+      points: [
+        { h: "What a hash map is", p: "A collection of key -> value pairs with near-instant lookup. 'Have I seen this value before, and where?' becomes an O(1) question instead of an O(n) search. In JavaScript it is an object or Map; in Python a dict." },
+        { h: "What a set is", p: "A collection of unique items with instant 'is this in here?' checks. Adding a duplicate does nothing. Perfect for detecting repeats or de-duplicating." },
+        { h: "Why they're fast", p: "Instead of scanning the whole list every time (O(n) per check, O(n^2) overall), you remember what you've seen in the map or set and check in O(1). The cost is O(n) extra memory, a trade you name out loud." }
+      ],
+      template: { lang: "JavaScript", code: "// set: instant membership + uniqueness\nconst seen = new Set();\nseen.add(5);\nseen.has(5);   // true, O(1)\n\n// map: remember where you saw something\nconst index = new Map();\nindex.set(value, i);\nif (index.has(need)) { /* found the match */ }" },
+      example: null
+    },
+    practice: { type: "code", refs: ["contains-duplicate", "two-sum"], note: "Contains Duplicate is a set in one line; Two Sum is a map remembering what it has seen. Both drop O(n^2) to O(n)." },
+    quiz: [
+      { q: "The main win of a hash map / set over scanning a list is:", choices: ["Less memory", "O(1) lookups instead of O(n) searches", "Sorted output", "Fewer lines only"], answer: 1, explain: "Constant-time lookups turn repeated O(n) searches (O(n^2) total) into O(n)." },
+      { q: "To check for duplicates in a list, the cleanest tool is:", choices: ["A second sorted copy", "A Set", "Two pointers", "Binary search"], answer: 1, explain: "Add items to a set; if one is already there, it's a duplicate. O(n) time." },
+      { code: "contains-duplicate" }
+    ],
+    recall: [
+      { front: "What does a hash map buy you?", back: "O(1) lookup of 'have I seen this / where is it' instead of an O(n) scan, trading O(n) memory." },
+      { front: "When to reach for a set?", back: "Membership checks, detecting duplicates, and de-duplicating, all O(1) per operation." }
+    ]
+  },
+  /* ---------- DATA SCIENCE & ML ---------- */
+  {
+    id: "statistics-foundations", track: "data-sci", title: "Statistics Foundations", kicker: "Core skill", est: "45 min",
+    learn: {
+      intro: "Data science starts with describing data honestly. Mean, median, and spread are the first questions any analyst asks, and interviews expect you to know when each one lies.",
+      points: [
+        { h: "Mean vs median", p: "The mean is the average (sum / count). The median is the middle value when sorted. The median resists outliers: one billionaire barely moves the median income but wildly inflates the mean." },
+        { h: "Spread: variance and standard deviation", p: "The mean alone hides how spread out the data is. Standard deviation measures the typical distance from the mean: small means tightly clustered, large means all over the place." },
+        { h: "Distributions", p: "Data has a shape. A normal (bell curve) distribution is symmetric; skewed data has a long tail. The shape decides whether the mean or the median is the honest summary." }
+      ],
+      template: null,
+      example: { h: "Why it matters for energy / water", p: "Average daily usage can look fine while a few extreme-demand days (the tail) are what actually strain the grid. Median and spread catch what the mean hides." }
+    },
+    practice: { type: "code", refs: ["mean", "median"], note: "Implement both by hand. Notice median needs a sort; mean is a single pass." },
+    quiz: [
+      { q: "Which is more resistant to a few extreme outliers?", choices: ["The mean", "The median", "They're identical", "Neither"], answer: 1, explain: "The median is the middle value, so extreme outliers barely move it; they can drag the mean a lot." },
+      { q: "Standard deviation measures:", choices: ["The average", "The middle value", "How spread out the data is around the mean", "The largest value"], answer: 2, explain: "It is the typical distance of points from the mean, i.e. the spread." },
+      { code: "mean" }
+    ],
+    recall: [
+      { front: "Mean vs median, when do they differ most?", back: "On skewed data or with outliers: the mean gets dragged toward the tail; the median stays central." },
+      { front: "What does standard deviation tell you?", back: "How spread out the data is around the mean (small = tight, large = dispersed)." }
+    ]
+  },
+  {
+    id: "data-wrangling", track: "data-sci", title: "Data Wrangling", kicker: "Core skill", est: "40 min",
+    learn: {
+      intro: "Most data-science time is spent cleaning and reshaping data, not modeling. The core moves (filter, aggregate, group, join) are the same whether you do them in SQL, pandas, or plain code.",
+      points: [
+        { h: "The four core moves", p: "Filter (keep the rows you want), aggregate (sum / avg / count them), group-by (do that per category), and join (combine two tables on a shared key). Master these and you can shape almost any dataset." },
+        { h: "SQL and pandas are the same ideas", p: "A pandas groupby is a SQL GROUP BY; a merge is a JOIN. If you learned it in the Data Engineering track's SQL, you already know the concepts. pandas is the in-memory Python version." },
+        { h: "Clean before you model", p: "Missing values, duplicates, wrong types, and outliers wreck a model silently. Handling them (drop, fill, or flag) is the unglamorous majority of real work." }
+      ],
+      template: null, example: null
+    },
+    practice: { type: "sql", refs: ["sql-total-per-site", "sql-region-threshold"], note: "These GROUP BY / HAVING queries are exactly the aggregate-and-filter moves you'll do in pandas: same logic, SQL syntax." },
+    quiz: [
+      { q: "A pandas groupby().sum() is the same idea as which SQL?", choices: ["SELECT *", "GROUP BY with SUM", "DROP TABLE", "CREATE INDEX"], answer: 1, explain: "Grouping rows by a key and aggregating is GROUP BY plus an aggregate in both." },
+      { q: "Roughly how much of real data-science work is cleaning and wrangling?", choices: ["About 10%", "About half or more", "None", "Only for beginners"], answer: 1, explain: "The large majority of the effort is getting data clean and shaped before any modeling." }
+    ],
+    recall: [
+      { front: "The four core data-wrangling moves?", back: "Filter, aggregate, group-by, and join." },
+      { front: "pandas groupby vs SQL?", back: "Same concept: groupby = GROUP BY, merge = JOIN. pandas is the in-memory Python version." }
+    ]
+  },
+  {
+    id: "ml-fundamentals", track: "data-sci", title: "Machine Learning Fundamentals", kicker: "Core skill", est: "50 min",
+    learn: {
+      intro: "Machine learning sounds mystical, but the core vocabulary is simple. Get these terms straight and most ML interview questions become approachable.",
+      points: [
+        { h: "Supervised vs unsupervised", p: "Supervised = you have labeled examples (inputs with known answers) and learn to predict the answer. Unsupervised = no labels; you find structure, like grouping similar customers (clustering)." },
+        { h: "Features and labels", p: "Features are the inputs (a home's size, location, age). The label is what you predict (its price). The model learns the relationship from many examples." },
+        { h: "Train / test split and overfitting", p: "You train on one slice of data and test on a held-out slice you never trained on. If it aces training but flops on the test set, it memorized instead of learned. That is overfitting." }
+      ],
+      template: null,
+      example: { h: "Energy / water example", p: "Predicting tomorrow's demand from features like temperature, day-of-week, and recent usage is supervised regression. You would test on days the model never saw." }
+    },
+    practice: { type: "code", refs: ["accuracy"], note: "Accuracy is how you score a supervised classifier's predictions against the true labels." },
+    quiz: [
+      { q: "You have data labeled with the correct answer and want to predict it. That is:", choices: ["Unsupervised learning", "Supervised learning", "Clustering", "Reinforcement only"], answer: 1, explain: "Labeled inputs mapped to a predicted label is supervised learning." },
+      { q: "A model that scores great on training data but poorly on new data has:", choices: ["Underfit", "Overfit", "Perfect generalization", "Too few features"], answer: 1, explain: "It memorized the training set instead of learning the pattern. The held-out test set reveals it." },
+      { q: "In predicting house price from size and location, 'price' is the:", choices: ["Feature", "Label (target)", "Outlier", "Index"], answer: 1, explain: "Price is what you predict, the label. Size and location are features." }
+    ],
+    recall: [
+      { front: "Supervised vs unsupervised?", back: "Supervised uses labeled examples to predict an answer; unsupervised finds structure with no labels (e.g. clustering)." },
+      { front: "Features vs label?", back: "Features are the inputs; the label is what you predict." },
+      { front: "What is overfitting, and how do you catch it?", back: "Memorizing training data so it fails on new data; a held-out test set reveals it." }
+    ]
+  },
+  {
+    id: "model-evaluation", track: "data-sci", title: "Model Evaluation", kicker: "Core skill", est: "45 min",
+    learn: {
+      intro: "A model is only as good as how you measure it, and accuracy alone will fool you. Knowing the right metric for the job is a favorite interview probe.",
+      points: [
+        { h: "Accuracy and its trap", p: "Accuracy is the fraction correct. But if 99% of emails are not spam, a model that always says 'not spam' is 99% accurate and useless. On imbalanced data, accuracy lies." },
+        { h: "Precision and recall", p: "Precision: of the things you flagged positive, how many really were? Recall: of the real positives, how many did you catch? There is a tradeoff; chase recall and precision usually drops. F1 balances the two." },
+        { h: "Regression error: RMSE and MAE", p: "For predicting numbers (not categories), you measure how far off you are. RMSE (root mean squared error) punishes big misses harder; MAE (mean absolute error) treats them evenly." }
+      ],
+      template: null,
+      example: { h: "Why forecasters use RMSE", p: "For energy / water demand, a few large forecast misses are what cause outages, so RMSE's extra penalty on big errors matches what you actually care about." }
+    },
+    practice: { type: "code", refs: ["accuracy", "rmse"], note: "Accuracy scores classifiers; RMSE scores numeric forecasts. Implementing both makes the formulas stick." },
+    quiz: [
+      { q: "Why can accuracy be misleading?", choices: ["It's hard to compute", "On imbalanced data, always guessing the majority looks accurate but is useless", "It only works for regression", "It ignores the training set"], answer: 1, explain: "With 99% one class, a trivial always-majority model scores 99% accuracy while catching nothing." },
+      { q: "'Of the items I flagged positive, how many truly were?' is:", choices: ["Recall", "Precision", "Accuracy", "RMSE"], answer: 1, explain: "That is precision. Recall is the reverse: of the true positives, how many you caught." },
+      { q: "For predicting a continuous number, a standard error metric is:", choices: ["Accuracy", "Precision", "RMSE", "F1"], answer: 2, explain: "RMSE (or MAE) measures how far numeric predictions are from the truth." },
+      { code: "accuracy" }
+    ],
+    recall: [
+      { front: "Why is accuracy misleading on imbalanced data?", back: "Always predicting the majority class scores high accuracy while catching none of the rare (often important) class." },
+      { front: "Precision vs recall?", back: "Precision: of flagged positives, how many were real. Recall: of real positives, how many you caught." },
+      { front: "Metric for numeric predictions?", back: "RMSE or MAE: how far off the numbers are (RMSE punishes big misses harder)." }
+    ]
+  },
+  {
+    id: "time-series", track: "data-sci", title: "Time Series & Forecasting", kicker: "Applied", est: "45 min",
+    learn: {
+      intro: "A lot of real data (energy demand, water flow, sensor readings) arrives over time, and time-series has its own rules. This is the corner of data science that fits utility and climate work best.",
+      points: [
+        { h: "Trend and seasonality", p: "A time series often has a trend (a long-term rise or fall) and seasonality (repeating cycles: daily, weekly, yearly). Demand up every evening and every summer is seasonality." },
+        { h: "Smoothing with moving averages", p: "Raw sensor data is noisy. A moving average (the average of the last k points) smooths it so the real pattern shows through. It is the simplest, most-used time-series tool." },
+        { h: "Forecasting and honest testing", p: "To predict the future you must not peek at it: test on later time periods the model never saw, never by shuffling randomly (that leaks the future into training). Score forecasts with RMSE." }
+      ],
+      template: null,
+      example: { h: "The whole loop", p: "Smooth the meter data (moving average), spot the daily / seasonal pattern, forecast tomorrow, and score it with RMSE against what actually happened. That is the core of demand forecasting." }
+    },
+    practice: { type: "code", refs: ["moving-average", "rmse"], note: "Moving average smooths a series; RMSE scores your forecast. Together they are the backbone of demand forecasting." },
+    quiz: [
+      { q: "Demand rising every evening and every summer is an example of:", choices: ["A trend", "Seasonality", "An outlier", "Noise"], answer: 1, explain: "Repeating cycles (daily, yearly) are seasonality. A trend is a long-term direction." },
+      { q: "The simplest way to smooth noisy sensor data is:", choices: ["Delete outliers", "A moving average", "Sort it", "One-hot encoding"], answer: 1, explain: "Averaging over a sliding window of recent points smooths noise while keeping the pattern." },
+      { q: "To test a forecasting model honestly, you:", choices: ["Shuffle all data randomly", "Train on earlier time, test on later time it never saw", "Test on the training data", "Only use accuracy"], answer: 1, explain: "Time order matters: random shuffling leaks future info. Hold out later periods and score with RMSE." },
+      { code: "moving-average" }
+    ],
+    recall: [
+      { front: "Trend vs seasonality?", back: "Trend is a long-term rise/fall; seasonality is repeating cycles (daily, weekly, yearly)." },
+      { front: "How do you smooth noisy time-series data?", back: "A moving average: the average of the last k points over a sliding window." },
+      { front: "How do you test a forecast honestly?", back: "Train on earlier periods, test on later ones the model never saw (never random-shuffle); score with RMSE." }
     ]
   }
 ];
