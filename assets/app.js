@@ -386,12 +386,14 @@
     var tmpl = L.template ? '<div class="learn-code"><div class="lc-bar">' + esc(L.template.lang) + ' &middot; template</div><pre><code>' + esc(L.template.code) + '</code></pre></div>' : "";
     var ex = L.example ? '<div class="learn-example"><h4>' + esc(L.example.h) + '</h4><p>' + esc(L.example.p) + '</p></div>' : "";
     var read = state.learned[m.id];
-    body.innerHTML = '<div class="learn"><p class="learn-intro">' + esc(L.intro) + '</p>' +
+    var prereq = m.track === "dsa" ? '<div class="prereq">New here? If <code>n</code>, <code>O(n)</code>, <code>n-1</code>, or 0-indexing look unfamiliar, build the basics first in the <button class="prereq-link" id="toFoundations">Foundations track</button>. It teaches every fundamental this module assumes.</div>' : "";
+    body.innerHTML = '<div class="learn">' + prereq + '<p class="learn-intro">' + esc(L.intro) + '</p>' +
       '<div class="learn-points">' + points + '</div>' + tmpl + ex +
       '<div class="learn-actions"><button class="btn ' + (read ? "btn-ghost" : "btn-primary") + '" id="markLearned">' + (read ? "Marked as read ✓" : "Mark as read") + '</button>' +
       '<button class="btn btn-ghost" id="toPractice">Go to Practice &rarr;</button></div></div>';
     $("#markLearned").addEventListener("click", function () { state.learned[m.id] = true; renderStep(); chrome(); });
     $("#toPractice").addEventListener("click", function () { go({ step: "practice" }); });
+    var tf = $("#toFoundations"); if (tf) tf.addEventListener("click", function () { go({ name: "track", track: "foundations" }); });
   }
 
   /* ---------- PRACTICE ---------- */

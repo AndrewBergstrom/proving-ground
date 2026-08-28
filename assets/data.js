@@ -199,6 +199,96 @@ var PROBLEMS = [
     solution: "function accuracy(predictions, labels) {\n  let c = 0;\n  for (let i = 0; i < predictions.length; i++) if (predictions[i] === labels[i]) c++;\n  return c / predictions.length;\n}",
     starterPy: "def accuracy(predictions, labels):\n    # fraction of predictions that equal the label\n    pass",
     solutionPy: "def accuracy(predictions, labels):\n    c = 0\n    for p, l in zip(predictions, labels):\n        if p == l:\n            c += 1\n    return c / len(predictions)"
+  },
+  {
+    id: "is-subsequence", title: "Is Subsequence", difficulty: "Easy", pattern: "Two Pointers",
+    prompt: "Return true if s is a subsequence of t: all characters of s appear in t in the same order (not necessarily next to each other). Walk one pointer through each string.",
+    fnName: "isSubsequence",
+    starter: "function isSubsequence(s, t) {\n  // return true or false\n\n}",
+    tests: [{ args: ["abc", "ahbgdc"], expected: true }, { args: ["axc", "ahbgdc"], expected: false }, { args: ["", "abc"], expected: true }, { args: ["abc", "abc"], expected: true }],
+    solution: "function isSubsequence(s, t) {\n  let i = 0;\n  for (const c of t) {\n    if (i < s.length && s[i] === c) i++;\n  }\n  return i === s.length;\n}",
+    starterPy: "def isSubsequence(s, t):\n    # return True or False\n    pass",
+    solutionPy: "def isSubsequence(s, t):\n    i = 0\n    for c in t:\n        if i < len(s) and s[i] == c:\n            i += 1\n    return i == len(s)"
+  },
+  {
+    id: "max-window-sum", title: "Max Sum of Size-K Window", difficulty: "Easy", pattern: "Sliding Window",
+    prompt: "Return the largest sum of any k consecutive numbers in nums. Slide a fixed window of size k: add the new number, drop the one that left, no recomputing.",
+    fnName: "maxWindowSum",
+    starter: "function maxWindowSum(nums, k) {\n  // largest sum of any k consecutive numbers\n\n}",
+    tests: [{ args: [[1, 2, 3, 4], 2], expected: 7 }, { args: [[2, 1, 5, 1, 3, 2], 3], expected: 9 }, { args: [[5], 1], expected: 5 }, { args: [[1, 1, 1], 2], expected: 2 }],
+    solution: "function maxWindowSum(nums, k) {\n  let s = 0;\n  for (let i = 0; i < k; i++) s += nums[i];\n  let best = s;\n  for (let i = k; i < nums.length; i++) {\n    s += nums[i] - nums[i - k];\n    best = Math.max(best, s);\n  }\n  return best;\n}",
+    starterPy: "def maxWindowSum(nums, k):\n    # largest sum of any k consecutive numbers\n    pass",
+    solutionPy: "def maxWindowSum(nums, k):\n    s = sum(nums[:k])\n    best = s\n    for i in range(k, len(nums)):\n        s += nums[i] - nums[i - k]\n        best = max(best, s)\n    return best"
+  },
+  {
+    id: "max-vowels", title: "Max Vowels in a Window", difficulty: "Medium", pattern: "Sliding Window",
+    prompt: "Return the maximum number of vowels (a, e, i, o, u) in any window of k consecutive characters of s. Same sliding-window idea, counting vowels as the window moves.",
+    fnName: "maxVowels",
+    starter: "function maxVowels(s, k) {\n  // max vowels in any window of size k\n\n}",
+    tests: [{ args: ["abciiidef", 3], expected: 3 }, { args: ["aeiou", 2], expected: 2 }, { args: ["leetcode", 3], expected: 2 }, { args: ["rhythms", 4], expected: 0 }],
+    solution: "function maxVowels(s, k) {\n  const v = new Set(['a', 'e', 'i', 'o', 'u']);\n  let c = 0;\n  for (let i = 0; i < k; i++) if (v.has(s[i])) c++;\n  let best = c;\n  for (let i = k; i < s.length; i++) {\n    if (v.has(s[i])) c++;\n    if (v.has(s[i - k])) c--;\n    best = Math.max(best, c);\n  }\n  return best;\n}",
+    starterPy: "def maxVowels(s, k):\n    # max vowels in any window of size k\n    pass",
+    solutionPy: "def maxVowels(s, k):\n    vowels = set('aeiou')\n    c = sum(1 for ch in s[:k] if ch in vowels)\n    best = c\n    for i in range(k, len(s)):\n        if s[i] in vowels:\n            c += 1\n        if s[i - k] in vowels:\n            c -= 1\n        best = max(best, c)\n    return best"
+  },
+  {
+    id: "climb-stairs", title: "Climbing Stairs", difficulty: "Easy", pattern: "Dynamic Programming",
+    prompt: "You can climb 1 or 2 steps at a time. Return how many distinct ways there are to reach the top of n steps. (The ways to reach step n = ways to reach n-1 plus ways to reach n-2. That's the DP.)",
+    fnName: "climbStairs",
+    starter: "function climbStairs(n) {\n  // number of distinct ways to climb n steps (1 or 2 at a time)\n\n}",
+    tests: [{ args: [2], expected: 2 }, { args: [3], expected: 3 }, { args: [1], expected: 1 }, { args: [5], expected: 8 }],
+    solution: "function climbStairs(n) {\n  let a = 1, b = 1;\n  for (let i = 0; i < n; i++) {\n    const t = b;\n    b = a + b;\n    a = t;\n  }\n  return a;\n}",
+    starterPy: "def climbStairs(n):\n    # number of distinct ways to climb n steps (1 or 2 at a time)\n    pass",
+    solutionPy: "def climbStairs(n):\n    a, b = 1, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a"
+  },
+  {
+    id: "house-robber", title: "House Robber", difficulty: "Medium", pattern: "Dynamic Programming",
+    prompt: "Each house holds some money, but you can't rob two adjacent houses. Return the maximum you can rob. (At each house: skip it, or rob it plus the best from two houses back. Classic DP.)",
+    fnName: "rob",
+    starter: "function rob(nums) {\n  // max money without robbing two adjacent houses\n\n}",
+    tests: [{ args: [[1, 2, 3, 1]], expected: 4 }, { args: [[2, 7, 9, 3, 1]], expected: 12 }, { args: [[5]], expected: 5 }, { args: [[]], expected: 0 }],
+    solution: "function rob(nums) {\n  let prev = 0, cur = 0;\n  for (const n of nums) {\n    const t = Math.max(cur, prev + n);\n    prev = cur;\n    cur = t;\n  }\n  return cur;\n}",
+    starterPy: "def rob(nums):\n    # max money without robbing two adjacent houses\n    pass",
+    solutionPy: "def rob(nums):\n    prev, cur = 0, 0\n    for n in nums:\n        prev, cur = cur, max(cur, prev + n)\n    return cur"
+  },
+  {
+    id: "search-insert", title: "Search Insert Position", difficulty: "Easy", pattern: "Modified Binary Search",
+    prompt: "Given a sorted array and a target, return the index of the target, or the index where it would be inserted to keep the array sorted. Do it in O(log n) with binary search.",
+    fnName: "searchInsert",
+    starter: "function searchInsert(nums, target) {\n  // index of target, or where it would be inserted\n\n}",
+    tests: [{ args: [[1, 3, 5, 6], 5], expected: 2 }, { args: [[1, 3, 5, 6], 2], expected: 1 }, { args: [[1, 3, 5, 6], 7], expected: 4 }, { args: [[1, 3, 5, 6], 0], expected: 0 }],
+    solution: "function searchInsert(nums, target) {\n  let lo = 0, hi = nums.length;\n  while (lo < hi) {\n    const mid = (lo + hi) >> 1;\n    if (nums[mid] < target) lo = mid + 1;\n    else hi = mid;\n  }\n  return lo;\n}",
+    starterPy: "def searchInsert(nums, target):\n    # index of target, or where it would be inserted\n    pass",
+    solutionPy: "def searchInsert(nums, target):\n    lo, hi = 0, len(nums)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if nums[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo"
+  },
+  {
+    id: "int-sqrt", title: "Integer Square Root", difficulty: "Easy", pattern: "Binary Search on the Answer",
+    prompt: "Return the integer square root of x: the largest whole number whose square is <= x. Example: intSqrt(8) = 2. Binary-search the answer between 1 and x - this is the 'search the answer, not the array' idea.",
+    fnName: "intSqrt",
+    starter: "function intSqrt(x) {\n  // largest whole number whose square is <= x\n\n}",
+    tests: [{ args: [4], expected: 2 }, { args: [8], expected: 2 }, { args: [0], expected: 0 }, { args: [16], expected: 4 }],
+    solution: "function intSqrt(x) {\n  if (x < 2) return x;\n  let lo = 1, hi = x, ans = 0;\n  while (lo <= hi) {\n    const mid = Math.floor((lo + hi) / 2);\n    if (mid * mid <= x) { ans = mid; lo = mid + 1; }\n    else hi = mid - 1;\n  }\n  return ans;\n}",
+    starterPy: "def intSqrt(x):\n    # largest whole number whose square is <= x\n    pass",
+    solutionPy: "def intSqrt(x):\n    if x < 2:\n        return x\n    lo, hi, ans = 1, x, 0\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if mid * mid <= x:\n            ans = mid\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return ans"
+  },
+  {
+    id: "factorial", title: "Factorial", difficulty: "Intro", pattern: "Recursion",
+    prompt: "Return n! (n factorial): n * (n-1) * ... * 1, with 0! = 1. Solve it recursively: the base case is n <= 1, and the recursive case is n * factorial(n-1).",
+    fnName: "factorial",
+    starter: "function factorial(n) {\n  // base case: n <= 1 returns 1\n  // recursive case: n * factorial(n - 1)\n\n}",
+    tests: [{ args: [0], expected: 1 }, { args: [1], expected: 1 }, { args: [5], expected: 120 }, { args: [3], expected: 6 }],
+    solution: "function factorial(n) {\n  if (n <= 1) return 1;\n  return n * factorial(n - 1);\n}",
+    starterPy: "def factorial(n):\n    # base case: n <= 1 returns 1\n    # recursive case: n * factorial(n - 1)\n    pass",
+    solutionPy: "def factorial(n):\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)"
+  },
+  {
+    id: "recursive-sum", title: "Recursive Sum", difficulty: "Intro", pattern: "Recursion",
+    prompt: "Return the sum of nums using recursion (no loop). Base case: an empty array sums to 0. Recursive case: the first number plus the sum of the rest.",
+    fnName: "recursiveSum",
+    starter: "function recursiveSum(nums) {\n  // base case: empty array returns 0\n  // recursive case: nums[0] + recursiveSum(rest)\n\n}",
+    tests: [{ args: [[1, 2, 3]], expected: 6 }, { args: [[]], expected: 0 }, { args: [[5]], expected: 5 }, { args: [[-1, 1]], expected: 0 }],
+    solution: "function recursiveSum(nums) {\n  if (nums.length === 0) return 0;\n  return nums[0] + recursiveSum(nums.slice(1));\n}",
+    starterPy: "def recursiveSum(nums):\n    # base case: empty list returns 0\n    # recursive case: nums[0] + recursiveSum(rest)\n    pass",
+    solutionPy: "def recursiveSum(nums):\n    if not nums:\n        return 0\n    return nums[0] + recursiveSum(nums[1:])"
   }
 ];
 
@@ -288,7 +378,7 @@ var MODULES = [
       template: { lang: "JavaScript", code: "let i = 0, j = arr.length - 1;\nwhile (i < j) {\n  const sum = arr[i] + arr[j];\n  if (sum === target) return [i, j];\n  if (sum < target) i++;   // need bigger, advance left\n  else j--;                // need smaller, retreat right\n}" },
       example: { h: "Worked example: Valid Palindrome", p: "Point at both ends, skip non-alphanumeric characters, compare the two characters, and walk inward. One pass, no reversed copy, O(1) space." }
     },
-    practice: { type: "code", refs: ["valid-palindrome", "two-sum"], note: "Two Sum is the hashing cousin: once you internalize the two-pointer instinct on a sorted array, notice how a hash map does the same job when it isn't sorted." },
+    practice: { type: "code", refs: ["valid-palindrome", "is-subsequence", "two-sum"], note: "Valid Palindrome and Is Subsequence are pure two-pointer scans. Two Sum is the hashing cousin: once the two-pointer instinct clicks on a sorted array, notice how a hash map does the same job when it isn't sorted." },
     quiz: [
       { q: "You're given a SORTED array and must find whether any two numbers sum to a target. Best first instinct?", choices: ["Nested loops, O(n²)", "Two pointers from both ends", "Sort it again, then binary search each element", "Recursion with memoization"], answer: 1, explain: "It's already sorted, so move inward: if the sum is too small advance the left pointer, too big retreat the right. O(n) time, O(1) space." },
       { q: "Which problem is NOT a natural two-pointers fit?", choices: ["Reverse a string in place", "Container with most water", "Count distinct substrings of a string", "Merge two sorted arrays"], answer: 2, explain: "Counting distinct substrings wants a set or suffix structure. The other three all pair naturally with two moving indices." },
@@ -335,7 +425,7 @@ var MODULES = [
       template: { lang: "JavaScript", code: "let left = 0, best = 0, sum = 0;\nfor (let right = 0; right < arr.length; right++) {\n  sum += arr[right];\n  while (sum > limit) { sum -= arr[left]; left++; }\n  best = Math.max(best, right - left + 1);\n}" },
       example: { h: "Related: Best Time to Buy and Sell Stock", p: "A degenerate window: track the lowest price so far (the left edge) and the best profit if you sold today (the right edge). One pass." }
     },
-    practice: { type: "code", refs: ["max-profit"], note: "Best Time to Buy/Sell is the gateway: a single pass tracking a running minimum. Build the habit of updating state as the window moves." },
+    practice: { type: "code", refs: ["max-profit", "max-window-sum", "max-vowels"], note: "Best Time to Buy/Sell is the gateway (a running minimum). Max Sum of Size-K Window and Max Vowels are textbook fixed-size windows: add the new item, drop the one that left, never recompute." },
     quiz: [
       { q: "'Longest substring with at most K distinct characters' is a signal for:", choices: ["Dynamic programming", "A dynamic sliding window", "Binary search", "Union-find"], answer: 1, explain: "Grow the right edge; while more than K distinct, shrink from the left. Track the max width seen." },
       { code: "max-profit" }
@@ -357,7 +447,7 @@ var MODULES = [
       template: { lang: "JavaScript", code: "// Kadane: state = best sum ending at i\nlet cur = nums[0], best = nums[0];\nfor (let i = 1; i < nums.length; i++) {\n  cur = Math.max(nums[i], cur + nums[i]);\n  best = Math.max(best, cur);\n}" },
       example: { h: "Worked example: Maximum Subarray", p: "At each index, the best subarray ending here is either just this element or this element added to the best ending at the previous index. Track the running best." }
     },
-    practice: { type: "code", refs: ["max-subarray"], note: "Maximum Subarray (Kadane) is the cleanest first DP: one variable of state, an obvious recurrence. Say the state out loud before you code." },
+    practice: { type: "code", refs: ["max-subarray", "climb-stairs", "house-robber"], note: "Maximum Subarray (Kadane) is the cleanest first DP. Climbing Stairs and House Robber add the classic 'this step depends on the previous one or two' recurrence. Say the state out loud before you code." },
     quiz: [
       { q: "The single most important step in a DP problem is:", choices: ["Writing the loops", "Defining the state precisely", "Choosing the language", "Adding memoization"], answer: 1, explain: "Once the state and recurrence are right, the code is mechanical. A vague state is where DP attempts fail." },
       { q: "In Kadane's algorithm, the state at index i is:", choices: ["The total sum so far", "The best subarray sum ENDING at i", "The number of positive elements", "The max element seen"], answer: 1, explain: "Best-ending-here either extends the previous run or restarts at nums[i]; the global answer is the max over all i." },
@@ -380,7 +470,7 @@ var MODULES = [
       template: { lang: "JavaScript", code: "let lo = 0, hi = nums.length - 1;\nwhile (lo <= hi) {\n  const mid = (lo + hi) >> 1;\n  if (nums[mid] === target) return mid;\n  if (nums[mid] < target) lo = mid + 1;\n  else hi = mid - 1;\n}\nreturn -1;" },
       example: { h: "Worked example: classic Binary Search", p: "Maintain [lo, hi]. Compare the midpoint to the target and discard the half that cannot contain it. O(log n)." }
     },
-    practice: { type: "code", refs: ["binary-search"], note: "Get the boundary conditions muscle-memory clean here  - empty array, single element, target absent. Those edge cases are where interviews are won or lost." },
+    practice: { type: "code", refs: ["binary-search", "search-insert", "int-sqrt"], note: "Get the boundaries clean on plain Binary Search and Search Insert. Integer Square Root is your first taste of binary-searching the ANSWER instead of an array index." },
     quiz: [
       { q: "'Minimize the maximum load across k workers' is a signal for:", choices: ["Plain binary search on the array", "Binary search on the ANSWER (feasibility is monotonic)", "Dynamic programming", "A heap"], answer: 1, explain: "Guess a max-load X, check feasibility in O(n), and binary-search X. Feasibility flips from no to yes exactly once." },
       { q: "The most common binary-search bug is:", choices: ["Using recursion", "Off-by-one in the bounds or mid update", "Sorting first", "Returning the value instead of the index"], answer: 1, explain: "The lo/hi update and the <= vs < condition must keep the target inside the range; get them consistent." },
@@ -639,7 +729,9 @@ var MODULES = [
       intro: "Every time this app says something runs in 'O(n) time,' it is describing how the work grows as the input gets bigger. This is the single most assumed idea in interviews, and almost nobody teaches it plainly. So let's make it concrete.",
       points: [
         { h: "What is n?", p: "n just means the size of the input, usually how many items are in the list. If a list has 10 numbers, n is 10; if it has a million, n is a million. Big-O describes how the work scales as n grows." },
-        { h: "How to read the common ones", p: "O(1) = constant: the same tiny amount of work no matter how big n is (like grabbing the first item). O(n) = linear: work grows in step with n (double the items, double the work, like adding them all up). O(log n) = grows very slowly (each step throws away half the data, like binary search). O(n^2) = quadratic: work explodes (a loop inside a loop)." },
+        { h: "How to read the common ones", p: "O(1) = constant: the same tiny amount of work no matter how big n is (like grabbing the first item). O(n) = linear: work grows in step with n (double the items, double the work, like adding them all up). O(log n) = grows very slowly (each step throws away half the data, like binary search). O(n log n) = the cost of a good sort: a little worse than linear, far better than quadratic. O(n^2) = quadratic: work explodes (a loop inside a loop)." },
+        { h: "How they rank", p: "From fastest-growing (best) to slowest: O(1) < O(log n) < O(n) < O(n log n) < O(n^2). When someone asks you to 'make it faster,' they usually mean move one rung down this ladder, like turning an O(n^2) nested loop into an O(n) single pass with a hash map." },
+        { h: "Simplifying Big-O: keep only what dominates", p: "Big-O cares about the biggest term when n is huge, so you drop constants and smaller terms. Two passes over the list is O(2n), but we just call it O(n): the 2 doesn't change how it scales. A loop that does O(n) work next to a nested loop that does O(n^2) is O(n + n^2), which simplifies to O(n^2) because the n^2 part swamps the rest. You are always naming the term that grows fastest." },
         { h: "Time vs space", p: "'O(n) time' is how many steps it takes. 'O(1) space' is how much extra memory it uses. 'In place' means O(1) space: you don't build a second copy. Interviewers care about both." },
         { h: "Why they ask", p: "They want to know your code still works when n is huge. An O(n) solution handles a million items fine; an O(n^2) one might take forever. Saying the complexity out loud shows you can reason about that." }
       ],
@@ -651,13 +743,17 @@ var MODULES = [
       { q: "In Big-O, what does 'n' usually mean?", choices: ["The answer to the problem", "The size of the input (e.g. number of items)", "The number of lines of code", "A random variable"], answer: 1, explain: "n is the input size. Big-O describes how the work grows as n grows." },
       { q: "A single loop that touches every item in a list of n items is:", choices: ["O(1)", "O(n)", "O(n^2)", "O(log n)"], answer: 1, explain: "One pass over n items is linear time, O(n). Double the items, double the work." },
       { q: "For a 0-indexed list of n items, the last item is at index:", choices: ["n", "n-1", "1", "0"], answer: 1, explain: "Indexes start at 0, so the last of n items sits at index n-1." },
+      { q: "You do two separate passes over a list, then one nested loop. What is the overall Big-O?", choices: ["O(2n + n^2)", "O(n^2)", "O(n)", "O(3)"], answer: 1, explain: "Drop constants and smaller terms: O(2n + n^2) simplifies to O(n^2) because the nested loop dominates as n grows." },
+      { q: "Order these from fastest-growing (best) to worst: O(n), O(1), O(n^2), O(log n).", choices: ["O(1), O(log n), O(n), O(n^2)", "O(n^2), O(n), O(log n), O(1)", "O(1), O(n), O(log n), O(n^2)", "O(log n), O(1), O(n), O(n^2)"], answer: 0, explain: "Constant is cheapest, then logarithmic, then linear, then quadratic: O(1) < O(log n) < O(n) < O(n^2)." },
       { code: "sum-array" }
     ],
     recall: [
       { front: "What does O(n) mean in plain words?", back: "Work grows in step with the input size n: double the items, double the work (a single pass)." },
       { front: "What does O(1) mean?", back: "Constant work: the same tiny cost no matter how big the input is (e.g. reading one index)." },
       { front: "'In place' / O(1) space means?", back: "You don't build a second copy; you use a fixed, small amount of extra memory." },
-      { front: "Last index of a 0-indexed list of n items?", back: "n-1 (indexes start at 0)." }
+      { front: "Last index of a 0-indexed list of n items?", back: "n-1 (indexes start at 0)." },
+      { front: "Why does O(2n + n^2) simplify to O(n^2)?", back: "Big-O keeps only the fastest-growing term and drops constants: as n gets huge, n^2 swamps 2n." },
+      { front: "The Big-O ladder from best to worst?", back: "O(1) < O(log n) < O(n) < O(n log n) < O(n^2). 'Make it faster' usually means move down a rung." }
     ]
   },
   {
@@ -728,6 +824,33 @@ var MODULES = [
     recall: [
       { front: "What does a hash map buy you?", back: "O(1) lookup of 'have I seen this / where is it' instead of an O(n) scan, trading O(n) memory." },
       { front: "When to reach for a set?", back: "Membership checks, detecting duplicates, and de-duplicating, all O(1) per operation." }
+    ]
+  },
+  {
+    id: "recursion", track: "foundations", title: "Recursion", kicker: "Start here", est: "45 min",
+    learn: {
+      intro: "Recursion is a function that solves a problem by calling itself on a smaller piece of the same problem. It feels strange at first, but it is just 'do a tiny bit, then hand the rest to a smaller copy of yourself.' Dynamic programming, tree traversal, and divide-and-conquer all build on it.",
+      points: [
+        { h: "The two parts every recursion needs", p: "A base case: the smallest version you can answer directly, with no more calling (this is what stops it). And a recursive case: do one small step, then call yourself on something smaller that moves toward the base case. Miss the base case and it never stops (a stack overflow, the code equivalent of a mirror facing a mirror)." },
+        { h: "A concrete example: factorial", p: "5! means 5 * 4 * 3 * 2 * 1. Notice 5! is just 5 * 4!, and 4! is 4 * 3!, and so on down to 1! = 1. So: base case n <= 1 returns 1; recursive case returns n * factorial(n-1). Each call peels off one number and trusts the smaller call to handle the rest." },
+        { h: "Trust the smaller call", p: "The hard part is mental: you assume the recursive call already returns the right answer for the smaller input, and you only reason about combining it with your one step. You do not trace every level in your head. Define the base case, define the one step, trust the rest." },
+        { h: "Cost: the call stack", p: "Each call waits on the one inside it, stacking up until the base case, then unwinding. Recursing n deep uses O(n) memory for that stack, even if you wrote no arrays. Anything you can do recursively you can also do with a loop; recursion just reads cleaner when the problem is naturally self-similar." }
+      ],
+      template: { lang: "JavaScript", code: "function factorial(n) {\n  if (n <= 1) return 1;        // base case: stop here\n  return n * factorial(n - 1); // recursive case: one step + smaller call\n}\n\n// factorial(3)\n//   -> 3 * factorial(2)\n//        -> 2 * factorial(1)\n//             -> 1   (base case)\n//        -> 2 * 1 = 2\n//   -> 3 * 2 = 6" },
+      example: { h: "How to spot a recursive problem", p: "Ask: 'can I describe the answer in terms of the same problem on a smaller input?' Sum of a list = first item + sum of the rest. The 10th step of climbing stairs = ways to reach step 9 + step 8. When the answer refers to itself on something smaller, recursion (or its table-filling cousin, dynamic programming) fits." }
+    },
+    practice: { type: "code", refs: ["factorial", "recursive-sum"], note: "Write the base case first, every time, then the one step. Factorial multiplies; Recursive Sum adds. Same skeleton, and it is the exact skeleton the DSA Dynamic Programming module builds on." },
+    quiz: [
+      { q: "What is the job of the base case in a recursion?", choices: ["To make it run faster", "To stop the recursion by answering the smallest case directly", "To call the function twice", "To sort the input"], answer: 1, explain: "The base case is the smallest input you answer without recursing. Without it, the function calls itself forever." },
+      { q: "factorial is defined as n * factorial(n-1). What is the recursive case doing?", choices: ["Solving the whole problem at once", "One small step (multiply by n), then trusting a smaller call for the rest", "Looping n times", "Nothing, it's the base case"], answer: 1, explain: "Recursion does one step and delegates the smaller remainder to another call, down to the base case." },
+      { q: "Recursing n levels deep costs how much memory for the call stack?", choices: ["O(1)", "O(n)", "O(n^2)", "None, recursion is free"], answer: 1, explain: "Each pending call sits on the stack until the base case unwinds it, so depth n uses O(n) stack space." },
+      { code: "factorial" }
+    ],
+    recall: [
+      { front: "The two parts every recursion needs?", back: "A base case (smallest input, answered directly, stops the recursion) and a recursive case (one small step + a call on a smaller input)." },
+      { front: "What happens if you forget the base case?", back: "It calls itself forever and crashes (stack overflow). The base case is what stops it." },
+      { front: "How should you reason about the recursive call?", back: "Trust it returns the correct answer for the smaller input; you only reason about combining it with your one step." },
+      { front: "Memory cost of recursing n deep?", back: "O(n) for the call stack: each pending call waits until the base case unwinds." }
     ]
   },
   /* ---------- DATA SCIENCE & ML ---------- */
