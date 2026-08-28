@@ -26,7 +26,8 @@
       learned: {}, solved: {}, code: {}, quiz: {}, decompDone: [], rag: {}, builds: {}, deck: {}
     };
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify({ completed: state.completed, cards: state.cards, lang: state.lang })); } catch (e) {} updateRing(); }
+  function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify({ completed: state.completed, cards: state.cards, lang: state.lang })); } catch (e) {} updateRing(); }
+  function save() { saveLocal(); if (_user) pushRemote(); }
 
   /* ---------- spaced repetition (keyed cards) ---------- */
   function cardState(k) { return state.cards[k] || { box: 0, due: 0 }; }
@@ -685,7 +686,81 @@
     if (pct) pct.textContent = Math.round(o * 100) + "%";
   }
 
+  /* ---------- auth + cloud sync (Supabase, optional) ---------- */
+  var SB = null, _user = null, _pulledFor = null, _pushT = null;
+  function authConfigured() { var c = window.PG_CONFIG || {}; return !!(c.SUPABASE_URL && c.SUPABASE_ANON_KEY && window.supabase && typeof window.supabase.createClient === "function"); }
+  function initAuth() {
+    if (!authConfigured()) return; // local-only mode
+    try { SB = window.supabase.createClient(window.PG_CONFIG.SUPABASE_URL, window.PG_CONFIG.SUPABASE_ANON_KEY); }
+    catch (e) { SB = null; return; }
+    var btn = $("#authBtn"); if (btn) btn.hidden = false;
+    SB.auth.onAuthStateChange(function (_e, session) { handleSession(session); });
+    SB.auth.getSession().then(function (res) { handleSession(res && res.data ? res.data.session : null); }, function () {});
+  }
+  function handleSession(session) {
+    _user = session && session.user ? session.user : null;
+    renderAuthBtn();
+    if (_user) { if (_pulledFor !== _user.id) { _pulledFor = _user.id; pullRemote(); } }
+    else { _pulledFor = null; }
+  }
+  function renderAuthBtn() {
+    var btn = $("#authBtn"); if (!btn) return;
+    if (_user) { btn.textContent = "Sign out"; btn.title = _user.email || "Signed in"; }
+    else { btn.textContent = "Sign in"; btn.title = "Sign in to sync progress across devices"; }
+  }
+  function openAuthModal() {
+    var ov = document.createElement("div"); ov.className = "modal-ov";
+    ov.innerHTML = '<div class="modal"><h3>Sign in to sync</h3><p>Get a one-time sign-in link by email. Your completed modules and review schedule will follow you across devices.</p>' +
+      '<input class="modal-input" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">' +
+      '<div class="modal-actions"><button class="btn btn-primary" id="authSend">Send sign-in link</button><button class="btn btn-ghost" id="authCancel">Cancel</button></div>' +
+      '<p class="modal-status" id="authStatus"></p></div>';
+    document.body.appendChild(ov);
+    function close() { ov.remove(); }
+    ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
+    $("#authCancel", ov).addEventListener("click", close);
+    $("#authSend", ov).addEventListener("click", function () {
+      var email = $("#authEmail", ov).value.trim(), st = $("#authStatus", ov);
+      if (!email) { st.textContent = "Enter your email address."; return; }
+      st.textContent = "Sending...";
+      SB.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.origin } }).then(function (res) {
+        st.textContent = res && res.error ? (res.error.message || "Could not send the link.") : "Check your email for a sign-in link, then return to this tab.";
+      }, function () { st.textContent = "Could not send the link. Try again."; });
+    });
+    setTimeout(function () { var i = $("#authEmail", ov); if (i) i.focus(); }, 50);
+  }
+  function pullRemote() {
+    if (!SB || !_user) return;
+    SB.from("progress").select("completed,cards,lang").eq("user_id", _user.id).maybeSingle().then(function (res) {
+      var data = res && res.data;
+      if (data) {
+        state.completed = Object.assign({}, data.completed || {}, state.completed);
+        var rc = data.cards || {};
+        Object.keys(rc).forEach(function (k) {
+          var r = rc[k], l = state.cards[k];
+          if (!l) state.cards[k] = r;
+          else if ((r.box || 0) > (l.box || 0)) state.cards[k] = r;
+          else if ((r.box || 0) === (l.box || 0) && (r.due || 0) > (l.due || 0)) state.cards[k] = r;
+        });
+        saveLocal(); pushRemote();
+      } else { pushRemote(); }
+      render();
+      toast("Progress synced across your devices.");
+    }, function () {});
+  }
+  function pushRemote() {
+    if (!SB || !_user) return;
+    clearTimeout(_pushT);
+    _pushT = setTimeout(function () {
+      SB.from("progress").upsert({ user_id: _user.id, completed: state.completed, cards: state.cards, lang: state.lang, updated_at: new Date().toISOString() }).then(function () {}, function () {});
+    }, 800);
+  }
+
   /* ---------- init ---------- */
+  var _authBtn = $("#authBtn");
+  if (_authBtn) _authBtn.addEventListener("click", function () {
+    if (_user && SB) { SB.auth.signOut().then(function () { _user = null; _pulledFor = null; renderAuthBtn(); toast("Signed out. Your progress stays on this device."); }, function () {}); }
+    else { openAuthModal(); }
+  });
   $("#homeLink").addEventListener("click", function (e) { e.preventDefault(); go({ name: "home" }); });
   $("#progressRing").addEventListener("click", function () { go({ name: "home" }); });
   $("#resetAll").addEventListener("click", function () {
@@ -694,4 +769,5 @@
     save(); go({ name: "home" });
   });
   render();
+  initAuth();
 })();
